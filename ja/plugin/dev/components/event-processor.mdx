@@ -114,6 +114,20 @@ class Welcome(EventProcessor):
 
 `ctx.event` は現在のイベント、`ctx.config` はこのプロセッサーの設定です。返信には `ctx.reply()`、ログの記録には `ctx.log()` を使います。関数の実行が終わると、イベントの処理も終了します。
 
+## ストリーミング返信
+
+`ctx.reply_stream()` で同じ返信を更新します。`update(text)` には、その時点の全文を渡します。
+
+```python
+async with ctx.reply_stream() as reply:
+    await reply.update("処理中…")
+    await reply.update("完了しました。")
+```
+
+`async with` ブロックが正常終了すると返信が完了します。ストリーミングが未対応・無効の場合やメッセージ以外のイベントでは、最後に全文を一度だけ送信します。例外時には、バッファ内の未完成テキストを送信しません。デバッグでは送信をシミュレーションします。
+
+権限は `ctx.reply()` と共通です。AgentRunner も `self.get_run_api(ctx).reply_stream()` を利用できます。モデルの出力テキストが自動送信されることはありません。
+
 ## イベントの登録
 
 `@self.handler(イベントクラス)` で処理関数を登録し、対応する識別子を `spec.events` に追加します。例えば `MemberJoinedEvent` は `group.member_joined` に対応します。
@@ -156,3 +170,5 @@ class Welcome(EventProcessor):
 
 - [EventProcessorDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/EventProcessorDemo)で他の実装例を確認できます。
 - パイプラインの前処理やモデル呼び出し完了時などに機能を追加する場合は、[イベントリスナー](/ja/plugin/dev/components/event-listener)を使用してください。
+
+返信、モデル、ツール、履歴、状態は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。

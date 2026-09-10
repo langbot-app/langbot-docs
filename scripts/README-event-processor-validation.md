@@ -6,6 +6,11 @@ Run the example checks with the SDK used by your LangBot installation.
 
 ## Repeatable checks
 
+The API references in `{zh,en,ja}/plugin/dev/apis/` are also checked against the
+installed SDK. Run `python scripts/verify-plugin-api-examples.py` to execute
+the examples, validate method arguments, and check translated code parity.
+The Host transport is mocked; this does not verify external delivery.
+
 With the matching SDK installed in the active Python environment:
 
 ```bash

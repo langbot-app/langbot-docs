@@ -114,6 +114,20 @@ class Welcome(EventProcessor):
 
 `ctx.event` contains the event data, and `ctx.config` contains this processor's settings. Use `ctx.reply()` to reply and `ctx.log()` to write logs. Processing finishes when the handlers return.
 
+## Streaming Replies
+
+Use `ctx.reply_stream()` to update one reply. `update(text)` takes the complete text so far:
+
+```python
+async with ctx.reply_stream() as reply:
+    await reply.update("Working…")
+    await reply.update("Done.")
+```
+
+The reply finishes when the `async with` block exits normally. If streaming is unsupported, disabled, or the event is not a message, the Host sends one complete message at the end. Exceptions discard buffered partial text. Debug runs simulate delivery.
+
+This API uses the same permission as `ctx.reply()`. AgentRunner components can use `self.get_run_api(ctx).reply_stream()`; model output text is still not sent automatically.
+
 ## Registering Events
 
 Register a handler with `@self.handler(EventClass)` and add the event identifier to `spec.events`. For example, `MemberJoinedEvent` corresponds to `group.member_joined`.
@@ -156,3 +170,5 @@ After installing the plugin, bind the Bot's **Member joined** and **Message rece
 
 - Explore more examples in [EventProcessorDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/EventProcessorDemo).
 - To extend Pipeline steps such as preprocessing or completion of a model call, use [Event Listener](/en/plugin/dev/components/event-listener).
+
+See [Run Context APIs](/en/plugin/dev/apis/agent-run) for replies, models, tools, history, and state.

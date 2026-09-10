@@ -1,0 +1,182 @@
+---
+title: "実行コンテキスト API"
+---
+
+AgentRunner と EventProcessor は、現在の実行に許可されたモデル、ツール、ナレッジベース、コンテキストへアクセスする API を使用します。両コンポーネントでは `self.plugin` を使用できません。
+
+## アクセス方法
+
+```python
+# Inside an EventProcessor handler
+api = ctx.api
+
+# Inside AgentRunner.run(ctx)
+api = self.get_run_api(ctx)
+```
+
+以下の `api` は現在の実行の API です。 同期の `get_allowed_*` とストリーミングのコンテキスト・イテレーター以外は、`await` で呼び出します。別の実行へ持ち越して再利用しないでください。
+
+### 設定と権限
+
+`ctx.config` はプロセッサーまたは Runner インスタンスの設定、`self.get_plugin_config()` はプラグイン全体の設定です。`spec.permissions` は要求する権限を宣言し、実際に利用できるリソースはユーザー設定と現在のイベントにも依存します。
+
+```yaml
+spec:
+  capabilities:
+    tool_calling: true
+  permissions:
+    tools: [detail, call]
+```
+
+返信とツール呼び出しに必要な最小設定です。他の機能を使う場合は `spec.permissions` に追加します：
+
+| `spec.permissions` | 操作 |
+| --- | --- |
+| `models` | `invoke`, `stream`, `rerank`, `count_tokens` |
+| `tools` | `detail`, `call` |
+| `knowledge_bases` | `list`, `retrieve` |
+| `history` | `page`, `search` |
+| `events` | `get`, `page` |
+| `storage` | `plugin`, `workspace` |
+| `interactions` | `request` |
+
+実際に許可されたリソースを確認します：
+
+```python
+models = api.get_allowed_models()  # Each item has model_id and operations
+tools = api.get_allowed_tools()  # Each item has tool_name and parameters
+knowledge_bases = api.get_allowed_knowledge_bases()  # Each item has kb_id
+```
+
+コンテキスト API の利用可否は `api.ctx.context.available_apis` で確認できます。`False` の API は呼び出せません。マニフェストへの権限追加だけで有効になるわけではありません。
+
+## 返信とログ
+
+| EventProcessor メソッド | 用途 |
+| --- | --- |
+| `await ctx.reply(text)` | 現在のイベントの会話へテキストを送信し、操作結果を返します。 |
+| `await ctx.log(text, level="info")` | `debug`、`info`、`warning`、`error` のログを記録します。 |
+| `ctx.reply_stream()` | 非同期コンテキストマネージャーで同じ返信を更新します。 |
+
+`ctx.reply(text)` は `await api.call_tool("event_reply", {"text": text})` と同じです。イベントに返信先があり、`event_reply` が許可されている必要があります。ログや独立した Agent の出力テキストは自動送信されません。
+
+### ストリーミング返信
+
+```python
+async with api.reply_stream() as reply:
+    await reply.update("Processing…")
+    await reply.update("Processing complete.")
+result = reply.result
+```
+
+EventProcessor では `ctx.reply_stream()` を使うと、操作の開始と結果も記録されます。
+
+`update(text)` には差分ではなく**その時点の全文**を渡します。戻り値は操作結果です。正常終了時に返信を完了します。プラットフォームでストリーミング返信が有効なメッセージイベントでは表示を更新し、それ以外の返信可能なイベントでは正常終了時に全文を一度送信します。例外やキャンセルでは未送信のテキストを破棄しますが、表示済みの内容の撤回は保証されません。デバッグ時の送信は Mock です。
+
+`available_apis.reply_stream` と `event_reply` 権限が必要です。モデル出力のストリーミングとプラットフォームへの送信は別の API です。
+
+## モデル、ツール、ナレッジベース
+
+モデルの引数と使用量の形式は[共通 API](/ja/plugin/dev/apis/common)を参照してください。実行 API には次のメソッドもあります：
+
+| メソッド | 戻り値・用途 |
+| --- | --- |
+| `invoke_llm(llm_model_uuid, messages, ...)` | `Message` |
+| `invoke_llm_with_usage(llm_model_uuid, messages, ...)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, ...)` | `MessageChunk` の非同期イテレーター |
+| `invoke_llm_stream_events(llm_model_uuid, messages, ...)` | `LLMStreamEvent` の非同期イテレーター |
+| `count_tokens(llm_model_uuid, messages, funcs=None, extra_args=None, timeout=None)` | 入力トークン数（`int`） |
+| `invoke_rerank(rerank_model_uuid, query, documents, top_k=None, extra_args=None, timeout=30.0)` | `index`、`relevance_score` を含むリスト |
+| `get_tool_detail(tool_name)` | ツールの説明と引数 schema（`dict`） |
+| `call_tool(tool_name, parameters)` | ツール結果（`dict`）。`session`、`query_id` は不要 |
+| `retrieve_knowledge(kb_id, query_text, top_k=5, filters=None)` | 検索結果のリスト |
+
+4 種類のモデル呼び出しは `remove_think=None`、非ストリーミング呼び出しは `timeout=None` も受け取ります。タイムアウトは実行の残り時間に制限されます。リソース一覧が空の場合もあります。
+
+```python
+allowed = {tool.tool_name for tool in api.get_allowed_tools()}
+if "event_get_actor" in allowed:
+    actor = await api.call_tool("event_get_actor", {})
+```
+
+`event_*` ツールの対象は LangBot がイベントから固定し、`platform_*` ツールの対象は schema に従って指定します。許可された一覧の名前と引数を使い、引数なしのツールには `{}` を渡します。
+
+## 履歴とイベント
+
+現在の入力には全履歴が含まれません。必要に応じて現在の実行範囲の記録を取得します。別の会話 ID を渡してアクセス範囲を広げることはできません。
+
+| メソッド | 戻り値 |
+| --- | --- |
+| `get_prompt()` | 適用されたプロンプトのリスト。機能フラグは `prompt_get` |
+| `history_page(conversation_id=None, before_cursor=None, after_cursor=None, limit=50, direction="backward", include_attachments=False)` | `HistoryPage` |
+| `history_search(query, filters=None, top_k=10)` | `HistorySearchResult` |
+| `event_get(event_id)` | `AgentEventRecord` |
+| `event_page(conversation_id=None, event_types=None, before_cursor=None, limit=50)` | `EventPage` |
+| `steering_pull(mode="all", limit=None)` | `SteeringPullResult`。実行中に追加された入力を取得 |
+
+```python
+if api.ctx.context.available_apis.history_page:
+    page = await api.history_page(limit=20)
+    for item in page.items:
+        print(item.model_dump())
+    if page.has_more and page.prev_cursor:
+        older = await api.history_page(before_cursor=page.prev_cursor, limit=20)
+```
+
+ページ結果は SDK オブジェクトです。辞書ではなく `.items`、`.has_more`、`.prev_cursor`、`.next_cursor` を使います。古い記録は `before_cursor`、新しい記録は `after_cursor` と `direction="forward"` で取得します。履歴検索はテキスト一致のみの場合があります。追加入力対応 Runner の `steering_pull` は `all`、`one`、`one-at-a-time` を受け取ります。
+
+## 状態とストレージ
+
+| メソッド | 戻り値 |
+| --- | --- |
+| `state_get(scope, key)` | `{"value": ...}` |
+| `state_set(scope, key, value)` | `{"success": ...}` |
+| `state_delete(scope, key)` | `{"success": ...}` |
+| `state_list(scope, prefix=None, limit=100)` | `{"keys": [...], "has_more": ...}` |
+
+状態には `available_apis.state` とホストが許可するスコープ（`conversation`、`actor`、`subject`、`runner`）が必要です。値は JSON 化可能にし、`external.` などのキープレフィックスを推奨します。LangBot が永続化し、API は辞書を返します。
+
+```python
+if api.ctx.context.available_apis.state:
+    await api.state_set("conversation", "external.last_topic", "setup")
+    value = await api.state_get("conversation", "external.last_topic")
+```
+
+プラグインおよびワークスペースのストレージは `set_plugin_storage`、`get_plugin_storage`、`get_plugin_storage_keys`、`delete_plugin_storage` と対応する `*_workspace_storage*` を使用します。引数は[共通 API](/ja/plugin/dev/apis/common)と同じで、値は `bytes` です。`api.ctx.resources.storage.plugin_storage` または `workspace_storage` の権限が必要です。
+
+## 実行記録
+
+以下は同名の `available_apis` フラグが必要で、許可された範囲の実行のみ操作できます。
+
+| メソッド | 戻り値 |
+| --- | --- |
+| `run_get(run_id=None)` | `AgentRun` |
+| `run_list(conversation_id=None, statuses=None, before_cursor=None, limit=50)` | `RunPage` |
+| `run_events_page(run_id=None, before_cursor=None, after_cursor=None, limit=50, direction="forward")` | `RunEventPage` |
+| `run_cancel(run_id=None, reason=None)` | `AgentRun` |
+| `run_append_result(result)` | `AgentRunEvent` |
+| `run_finalize(run_id=None, status=None, reason=None)` | `AgentRun` |
+
+`run_id=None` は現在の実行を指します。EventProcessor はハンドラーの完了時に自動終了するため、通常は記録の手動追加・終了は不要です。AgentRunner は `yield AgentRunResult` で結果を報告します。同じ結果を `run_append_result` で重複登録しないでください。
+
+## 構造化インタラクション（AgentRunner）
+
+確認やフォーム入力には `yield AgentRunResult.interaction_requested(ctx.run_id, request)` を使用します。`request` は `InteractionRequest` または辞書で、必須フィールドは `interaction_id`、`title`、`fallback_text` です。`kind`（`form`、`confirmation`、`choice`）、`fields`、`actions`、`expires_at` は任意です。
+
+`spec.capabilities.interactions: true` と `spec.permissions.interactions: [request]` の宣言、およびホストの許可が必要です。画面の対応状況は `ctx.delivery.interactions` で確認し、送信結果は `interaction.submitted` イベントとして返ります。これは Runner の結果イベントであり、`ctx.api` のメソッドではありません。通常の EventProcessor ハンドラーには直接公開されていません。
+
+## エラー処理
+
+```python
+from langbot_plugin.api.proxies.agent_run import PermissionDeniedError
+from langbot_plugin.api.entities.builtin.agent_runner.errors import AgentAPIException
+
+try:
+    result = await api.call_tool("event_get_actor", {})
+except PermissionDeniedError as exc:
+    await ctx.log(str(exc), level="warning")
+except AgentAPIException as exc:
+    await ctx.log(f"{exc.error.code}: {exc.error.message}", level="error")
+```
+
+EventProcessor 内の例です。`PermissionDeniedError` はリソース・操作・機能の権限不足を示します。`AgentAPIException.error` は `code`、`message`、`retryable`、`details` を持ちます。送信のタイムアウト時は成功済みの場合もあるため、`retryable` だけで再送しないでください。

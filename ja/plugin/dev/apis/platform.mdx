@@ -1,0 +1,78 @@
+---
+title: "プラットフォーム API"
+---
+
+ボット UUID を指定してプラットフォームアダプターの API を呼び出します。メッセージチェーンの送信は `self.plugin.send_message()`、グループやユーザーの取得などは以下を使用します。
+
+## プラットフォーム API の呼び出し
+
+```python
+async def call_platform_api(
+    self,
+    bot_uuid: str,
+    action: str,
+    params: dict[str, Any] | None = None,
+) -> Any:
+    ...
+```
+
+Command、EventListener、Tool などのコンポーネントでは `self.plugin` から呼び出します。戻り値は操作に応じた辞書、リスト、スカラー、`None` で、プラットフォーム SDK のオブジェクトではありません。
+
+```python
+group = await self.plugin.call_platform_api(
+    bot_uuid=bot_uuid,
+    action="get_group_info",
+    params={"group_id": "123456"},
+)
+```
+
+`bot_uuid` は `await self.plugin.get_bots()`、またはパイプラインイベントの `await event_context.get_bot_uuid()` で取得できます。プラットフォーム ID には実際のイベントや設定の値を使用します。
+
+### 主な操作
+
+| `action` | `params` |
+| --- | --- |
+| `get_user_info` | `user_id` |
+| `get_friend_list` | `{}` |
+| `get_group_info` | `group_id` |
+| `get_group_list` | `{}` |
+| `get_group_member_list` | `group_id` |
+| `get_group_member_info` | `group_id`, `user_id` |
+| `get_message` / `delete_message` | `chat_type`, `chat_id`, `message_id` |
+| `set_group_name` | `group_id`, `name` |
+| `mute_member` | `group_id`, `user_id`, `duration` |
+| `unmute_member` / `kick_member` | `group_id`, `user_id` |
+| `leave_group` | `group_id` |
+| `approve_friend_request` | `request_id`, `approve`, `remark` |
+| `approve_group_invite` | `request_id`, `approve` |
+| `get_file_url` | `file_id` |
+
+
+対応する操作はプラットフォームごとに異なり、ボットの管理者権限が必要な場合があります。`duration` は秒数で、`0` の意味はプラットフォームに依存します。共通の永久ミュート値ではありません。取得結果がキャッシュに依存することもあります。ボットが未起動、未対応の操作、引数不正の場合は例外になります。
+
+## プラットフォーム固有の API
+
+外側の `action` を `call_platform_api` にし、`params` にプラットフォームの操作と引数を指定します。OneBot Omni でボットのアカウント情報を取得する例です：
+
+```python
+account = await self.plugin.call_platform_api(
+    bot_uuid=bot_uuid,
+    action="call_platform_api",
+    params={"action": "get_login_info", "params": {}},
+)
+```
+
+アダプターが宣言した操作のみ呼び出せます。すべてのプラットフォーム API を任意に転送できるわけではありません。プラグインはランタイム経由でホストを呼び出し、`ctx.query.adapter` や `adapter.bot` には直接アクセスしません。
+
+## イベントプロセッサーからの呼び出し
+
+EventProcessor と AgentRunner は実行に許可されたツールを使用し、汎用の `call_platform_api` は公開しません。現在のイベントで発起者の取得が許可されている場合の例です：
+
+```python
+tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}
+if "event_get_actor" in tools:
+    actor = await ctx.api.call_tool("event_get_actor", {})
+    await ctx.log(str(actor))
+```
+
+アクセス方法、権限、返信の例は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。イベントデバッグのプラットフォームツールは Mock ですが、通常のコンポーネントの `self.plugin.call_platform_api()` は実際の呼び出しです。

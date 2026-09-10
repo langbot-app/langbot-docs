@@ -27,6 +27,7 @@ def load_tutorial():
             for block in re.findall(r"^```yaml\n(.*?)^```", source, re.M | re.S)
             if "kind: EventProcessor" in block
         ]
+        python = [block for block in python if "class Welcome(EventProcessor):" in block]
         assert len(python) == len(manifests) == 1, path
         examples.append((python[0], manifests[0]))
     assert examples[0] == examples[1] == examples[2], "Locale examples differ"

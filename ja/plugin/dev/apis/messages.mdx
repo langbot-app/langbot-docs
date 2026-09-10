@@ -58,34 +58,8 @@ msg_chain = MessageChain([
 
 ## その他のエンティティ
 
-上記のエンティティに加えて、`Friend`や`Group`などのエンティティもあります。これらのエンティティは`langbot_plugin.api.entities.platform.entities`で定義されています。
+上記のエンティティに加えて、`Friend`や`Group`などのエンティティもあります。これらのエンティティは`langbot_plugin.api.entities.builtin.platform.entities`で定義されています。
 
-## 基盤プラットフォームAPIへのアクセス
+## プラットフォーム API
 
-<Warning>
-  4.xには適用されません。
-</Warning>
-
-プラットフォームの違いを抽象化するために、LangBotはメッセージングプラットフォームAPIの上に抽象化レイヤーを提供しています。これには、上記で説明した内容と、`pkg/platform/sources`ディレクトリ内のさまざまなプラットフォームアダプターが含まれます。 ただし、プラットフォームの違いが大きいため、抽象化レイヤーのエンティティとAPIのカプセル化は完全ではありません。プラグインがプラットフォーム固有の機能にアクセスする必要がある場合は、次の手順に従って基盤APIにアクセスできます。
-
-<Info>
-  ```python
-      # 例えばプラグイン内で
-      @handler(GroupMessageReceived)
-      async def _(self, ctx: EventContext):
-          # アダプターオブジェクトを取得
-          adapter = ctx.query.adapter
-  ```
-</Info>
-
-| プラットフォーム      | アダプター           | アクセス方法             | 説明                                                                                                                                                                                                      |
-| ------------- | --------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OneBot v11    | aiocqhttp       | adapter.bot        | botオブジェクトは[aiocqhttp](https://github.com/nonebot/aiocqhttp) CQHttpオブジェクトに対応します。詳細な使用方法についてはaiocqhttpドキュメントを参照してください                                                                                     |
-| QQ公式API       | qqofficial      | adapter.bot        | botオブジェクトはlibs/qq_official_api以下のSDKオブジェクトです。詳細な使用方法については、libs/qq_official_api/api.pyの`QQOfficialClient`内の`send_group_text_msg`メソッドを参照してHTTPリクエストメソッドを確認し、具体的なインターフェースドキュメントについてはQQ公式APIドキュメントを参照してください |
-| WeCom(企業微信)   | wecom           | adapter.bot        | libs/wecom_api/api.pyの`WecomClient`内の`send_image`メソッドを参照してHTTPリクエストメソッドを確認し、具体的なインターフェースドキュメントについてはWeCom APIドキュメントを参照してください                                                                             |
-| WeChat公式アカウント | officialaccount | -                  | インターフェースドキュメントについてはWeChat公式アカウントAPIドキュメントを参照してください。認証情報はadapter.botから取得できます                                                                                                                             |
-| Lark          | lark            | adapter.api_client | Lark SDKのAPI Clientオブジェクトです。詳細については[oapi-sdk-python](https://github.com/larksuite/oapi-sdk-python)を参照してください                                                                                             |
-| DingTalk      | dingtalk        | -                  | DingTalk APIドキュメントを参照してください。認証情報はadapter.botから取得できます                                                                                                                                                    |
-| Discord       | discord         | adapter.bot        | botオブジェクトは[Rapptz/discord.py](https://github.com/Rapptz/discord.py) Discordオブジェクトです。詳細な使用方法についてはドキュメントを参照してください                                                                                         |
-| Telegram      | telegram        | adapter.bot        | botオブジェクトは[python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) Telegramオブジェクトです。詳細な使用方法についてはドキュメントを参照してください                                                                |
-| Slack         | slack           | adapter.bot        | botオブジェクトはlibs/slack_api/api.py内にあります。詳細な使用方法についてはそのコードとSlack SDKを参照してください                                                                                                                              |
+ユーザー取得、グループ管理、固有の操作には[プラットフォーム API](/ja/plugin/dev/apis/platform)を使用してください。EventProcessor と AgentRunner は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)から許可されたツールを呼び出します。

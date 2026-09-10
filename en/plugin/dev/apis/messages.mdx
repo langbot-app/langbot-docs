@@ -58,34 +58,8 @@ When creating components, named parameters must be used. For specific usage, you
 
 ## Other Entities
 
-In addition to the above entities, there are also entities like `Friend` and `Group`. These entities are defined in `langbot_plugin.api.entities.platform.entities`.
+In addition to the above entities, there are also entities like `Friend` and `Group`. These entities are defined in `langbot_plugin.api.entities.builtin.platform.entities`.
 
-## Accessing Underlying Platform APIs
+## Platform APIs
 
-<Warning>
-  Not applicable for 4.x.
-</Warning>
-
-To abstract away platform differences, LangBot provides an abstraction layer above messaging platform APIs, which includes the content described above and various platform adapters in the `pkg/platform/sources` directory. However, due to significant platform differences, the entity and API encapsulation in the abstraction layer is not complete. If your plugin needs to access platform-specific functionality, you can access underlying APIs according to the following instructions.
-
-<Info>
-  ```python
-      # For example in a plugin
-      @handler(GroupMessageReceived)
-      async def _(self, ctx: EventContext):
-          # Get adapter object
-          adapter = ctx.query.adapter
-  ```
-</Info>
-
-| Platform                  | Adapter         | Access Method      | Description                                                                                                                                                                                                                                                                                    |
-| ------------------------- | --------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OneBot v11                | aiocqhttp       | adapter.bot        | bot object corresponds to [aiocqhttp](https://github.com/nonebot/aiocqhttp) CQHttp object, please refer to aiocqhttp documentation for detailed usage                                                                                                                                          |
-| QQ Official API           | qqofficial      | adapter.bot        | bot object is the SDK object under libs/qq_official_api, for detailed usage please refer to the `send_group_text_msg` method in `QQOfficialClient` in libs/qq_official_api/api.py for HTTP request methods, please refer to QQ Official API documentation for specific interface documentation |
-| WeCom (Enterprise WeChat) | wecom           | adapter.bot        | Refer to the `send_image` method in `WecomClient` in libs/wecom_api/api.py for HTTP request methods, please refer to WeCom API documentation for specific interface documentation                                                                                                              |
-| WeChat Official Account   | officialaccount | -                  | Please refer to WeChat Official Account API documentation for interface documentation, credential information can be obtained from adapter.bot                                                                                                                                                 |
-| Lark                      | lark            | adapter.api_client | Lark SDK's API Client object, please refer to [oapi-sdk-python](https://github.com/larksuite/oapi-sdk-python) for details                                                                                                                                                                      |
-| DingTalk                  | dingtalk        | -                  | Please refer to DingTalk API documentation, credential information can be obtained from adapter.bot                                                                                                                                                                                            |
-| Discord                   | discord         | adapter.bot        | bot object is [Rapptz/discord.py](https://github.com/Rapptz/discord.py) Discord object, please refer to documentation for detailed usage                                                                                                                                                       |
-| Telegram                  | telegram        | adapter.bot        | bot object is [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) Telegram object, please refer to documentation for detailed usage                                                                                                                              |
-| Slack                     | slack           | adapter.bot        | bot object in libs/slack_api/api.py, please refer to its code and Slack SDK for detailed usage                                                                                                                                                                                                 |
+Use [Platform APIs](/en/plugin/dev/apis/platform) to query users, manage groups, and call platform-specific actions. EventProcessor and AgentRunner call authorized platform tools through [Run Context APIs](/en/plugin/dev/apis/agent-run).

@@ -1,0 +1,182 @@
+---
+title: "Run Context APIs"
+---
+
+AgentRunner and EventProcessor use run-scoped APIs to access authorized models, tools, knowledge bases, and context. Neither component exposes `self.plugin`.
+
+## Access
+
+```python
+# Inside an EventProcessor handler
+api = ctx.api
+
+# Inside AgentRunner.run(ctx)
+api = self.get_run_api(ctx)
+```
+
+In the examples below, `api` refers to the current run API. Use `await` for the methods below, except synchronous `get_allowed_*` methods and streaming context/iterator APIs. Do not retain or reuse it across runs.
+
+### Configuration and permissions
+
+`ctx.config` contains the processor or Runner instance configuration; `self.get_plugin_config()` reads plugin-level configuration. Manifest `spec.permissions` declares requested permissions; actual resources also depend on user configuration and the current event.
+
+```yaml
+spec:
+  capabilities:
+    tool_calling: true
+  permissions:
+    tools: [detail, call]
+```
+
+This is the minimum declaration for replies and tool calls. Add other entries to `spec.permissions` as needed:
+
+| `spec.permissions` | Operations |
+| --- | --- |
+| `models` | `invoke`, `stream`, `rerank`, `count_tokens` |
+| `tools` | `detail`, `call` |
+| `knowledge_bases` | `list`, `retrieve` |
+| `history` | `page`, `search` |
+| `events` | `get`, `page` |
+| `storage` | `plugin`, `workspace` |
+| `interactions` | `request` |
+
+Inspect the resources actually granted:
+
+```python
+models = api.get_allowed_models()  # Each item has model_id and operations
+tools = api.get_allowed_tools()  # Each item has tool_name and parameters
+knowledge_bases = api.get_allowed_knowledge_bases()  # Each item has kb_id
+```
+
+Check context capabilities through `api.ctx.context.available_apis`. Do not call an API whose flag is `False`; a manifest permission alone does not enable it.
+
+## Replies and logs
+
+| EventProcessor method | Purpose |
+| --- | --- |
+| `await ctx.reply(text)` | Send text to the current event conversation; return the action result. |
+| `await ctx.log(text, level="info")` | Record a log at `debug`, `info`, `warning`, or `error` level. |
+| `ctx.reply_stream()` | Update one reply through an async context manager. |
+
+`ctx.reply(text)` is equivalent to `await api.call_tool("event_reply", {"text": text})`. The event must have a reply target and grant `event_reply`. Logs and text returned by an independent Agent are not automatically sent to the platform.
+
+### Streaming replies
+
+```python
+async with api.reply_stream() as reply:
+    await reply.update("Processing…")
+    await reply.update("Processing complete.")
+result = reply.result
+```
+
+EventProcessor can use `ctx.reply_stream()` to also record the action start and result.
+
+`update(text)` takes the **complete text so far**, not a delta, and returns the action result. Normal exit completes the reply. Message events with platform streaming support enabled update the platform message; other replyable events buffer text and send once on successful exit. Errors or cancellation discard buffered partial text; already displayed content is not guaranteed to be retracted. Debug mode simulates platform delivery.
+
+This requires `available_apis.reply_stream` and the `event_reply` permission. Model streaming and platform streaming are separate APIs; the plugin explicitly connects them.
+
+## Models, tools, and knowledge bases
+
+See [Common APIs](/en/plugin/dev/apis/common) for model parameters and usage objects. The run API also provides:
+
+| Method | Result or purpose |
+| --- | --- |
+| `invoke_llm(llm_model_uuid, messages, ...)` | `Message` |
+| `invoke_llm_with_usage(llm_model_uuid, messages, ...)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, ...)` | Async iterator of `MessageChunk` |
+| `invoke_llm_stream_events(llm_model_uuid, messages, ...)` | Async iterator of `LLMStreamEvent` |
+| `count_tokens(llm_model_uuid, messages, funcs=None, extra_args=None, timeout=None)` | Input token count, `int` |
+| `invoke_rerank(rerank_model_uuid, query, documents, top_k=None, extra_args=None, timeout=30.0)` | List with `index` and `relevance_score` |
+| `get_tool_detail(tool_name)` | Tool description and parameter schema, `dict` |
+| `call_tool(tool_name, parameters)` | Tool result, `dict`; no `session` or `query_id` |
+| `retrieve_knowledge(kb_id, query_text, top_k=5, filters=None)` | Retrieval result list |
+
+All four model invocation methods also accept `remove_think=None`; non-streaming methods accept `timeout=None`. Timeouts are bounded by the remaining run time. Resource lists may be empty; do not assume a first model or knowledge base exists.
+
+```python
+allowed = {tool.tool_name for tool in api.get_allowed_tools()}
+if "event_get_actor" in allowed:
+    actor = await api.call_tool("event_get_actor", {})
+```
+
+LangBot fixes targets for `event_*` tools; `platform_*` tools accept targets according to their schema. Use names and parameters from the granted list; pass `{}` to tools with no parameters.
+
+## History and events
+
+The current input does not include full history. Pull records within the current run scope as needed; passing another conversation ID does not expand access.
+
+| Method | Returns |
+| --- | --- |
+| `get_prompt()` | Effective prompt list; capability flag: `prompt_get` |
+| `history_page(conversation_id=None, before_cursor=None, after_cursor=None, limit=50, direction="backward", include_attachments=False)` | `HistoryPage` |
+| `history_search(query, filters=None, top_k=10)` | `HistorySearchResult` |
+| `event_get(event_id)` | `AgentEventRecord` |
+| `event_page(conversation_id=None, event_types=None, before_cursor=None, limit=50)` | `EventPage` |
+| `steering_pull(mode="all", limit=None)` | `SteeringPullResult`; consume queued follow-up inputs |
+
+```python
+if api.ctx.context.available_apis.history_page:
+    page = await api.history_page(limit=20)
+    for item in page.items:
+        print(item.model_dump())
+    if page.has_more and page.prev_cursor:
+        older = await api.history_page(before_cursor=page.prev_cursor, limit=20)
+```
+
+Page results are SDK objects: use `.items`, `.has_more`, `.prev_cursor`, and `.next_cursor`, not dictionary indexing. Use `before_cursor` for older records, and `after_cursor` with `direction="forward"` for newer records. History search may only provide text matching. `steering_pull` accepts `all`, `one`, or `one-at-a-time` for Runners supporting follow-up inputs.
+
+## State and storage
+
+| Method | Returns |
+| --- | --- |
+| `state_get(scope, key)` | `{"value": ...}` |
+| `state_set(scope, key, value)` | `{"success": ...}` |
+| `state_delete(scope, key)` | `{"success": ...}` |
+| `state_list(scope, prefix=None, limit=100)` | `{"keys": [...], "has_more": ...}` |
+
+State requires `available_apis.state` and a Host-enabled scope: `conversation`, `actor`, `subject`, or `runner`. Values must be JSON-serializable; use a key prefix such as `external.`. LangBot persists state; these methods return dictionaries.
+
+```python
+if api.ctx.context.available_apis.state:
+    await api.state_set("conversation", "external.last_topic", "setup")
+    value = await api.state_get("conversation", "external.last_topic")
+```
+
+Plugin and workspace storage provide `set_plugin_storage`, `get_plugin_storage`, `get_plugin_storage_keys`, `delete_plugin_storage`, and the corresponding `*_workspace_storage*` methods. Parameters match [Common APIs](/en/plugin/dev/apis/common); values are `bytes`. Access requires `api.ctx.resources.storage.plugin_storage` or `workspace_storage` respectively.
+
+## Run records
+
+The following methods require the matching `available_apis` flag and only access runs within the authorized scope.
+
+| Method | Returns |
+| --- | --- |
+| `run_get(run_id=None)` | `AgentRun` |
+| `run_list(conversation_id=None, statuses=None, before_cursor=None, limit=50)` | `RunPage` |
+| `run_events_page(run_id=None, before_cursor=None, after_cursor=None, limit=50, direction="forward")` | `RunEventPage` |
+| `run_cancel(run_id=None, reason=None)` | `AgentRun` |
+| `run_append_result(result)` | `AgentRunEvent` |
+| `run_finalize(run_id=None, status=None, reason=None)` | `AgentRun` |
+
+`run_id=None` selects the current run. EventProcessor handlers finish automatically when they return and usually do not need to append or finalize records manually. AgentRunner reports results with `yield AgentRunResult`; do not also append the same result through `run_append_result`.
+
+## Structured interactions (AgentRunner)
+
+To request confirmation or form input, yield `AgentRunResult.interaction_requested(ctx.run_id, request)`. `request` accepts an `InteractionRequest` object or dictionary. Required fields are `interaction_id`, `title`, and `fallback_text`; optional fields include `kind` (`form`, `confirmation`, `choice`), `fields`, `actions`, and `expires_at`.
+
+This requires `spec.capabilities.interactions: true`, `spec.permissions.interactions: [request]`, and Host authorization. Inspect `ctx.delivery.interactions` for surface support; submissions return as `interaction.submitted` events. This is a Runner result event, not a method on `ctx.api`, and is not directly exposed by ordinary EventProcessor handlers.
+
+## Error handling
+
+```python
+from langbot_plugin.api.proxies.agent_run import PermissionDeniedError
+from langbot_plugin.api.entities.builtin.agent_runner.errors import AgentAPIException
+
+try:
+    result = await api.call_tool("event_get_actor", {})
+except PermissionDeniedError as exc:
+    await ctx.log(str(exc), level="warning")
+except AgentAPIException as exc:
+    await ctx.log(f"{exc.error.code}: {exc.error.message}", level="error")
+```
+
+This example runs inside an EventProcessor. `PermissionDeniedError` means a resource, operation, or capability is not granted. `AgentAPIException.error` contains `code`, `message`, `retryable`, and `details`. A timed-out send may already have succeeded; do not resend solely because `retryable` is true.

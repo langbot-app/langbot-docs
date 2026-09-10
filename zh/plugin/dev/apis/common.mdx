@@ -4,6 +4,8 @@ title: "插件通用 API"
 
 LangBot 为插件提供了一系列 API ，用于操作 LangBot 各个模块、控制消息上下文等。
 
+`Command`、`EventListener`、`Tool` 等普通组件通过 `self.plugin` 使用本页 API。`AgentRunner` 和 `EventProcessor` 请使用[运行上下文 API](/zh/plugin/dev/apis/agent-run)，不使用 `self.plugin`。平台查询和专有动作见[平台 API](/zh/plugin/dev/apis/platform)。
+
 ## 请求 API
 
 操作当前正在处理的用户请求（消息）。仅在`EventListener`和`Command`组件中可用。访问方式如下：
@@ -105,12 +107,20 @@ knowledge_bases = await event_context.list_pipeline_knowledge_bases()
 
 仅返回当前请求对应流水线在 `Local Agent` 配置中绑定的知识库。若当前流水线未配置知识库，或未使用 `Local Agent`，则返回空列表。
 
+### 开始新对话
+
+`await event_context.create_new_conversation()` 清除当前流水线会话正在使用的对话，后续处理会重新建立对话。返回空字典，不会清除平台聊天记录。
+
+### 检索当前流水线的知识库
+
+`await event_context.retrieve_knowledge(kb_id, query_text, top_k=5, filters=None)` 返回检索结果列表。`kb_id` 必须来自 `list_pipeline_knowledge_bases()`；不能用这个请求接口访问流水线未配置的知识库。
+
 ## LangBot API
 
-这些 API 可在插件任何组件中调用。访问方式如下：
+这些 API 可在提供 `self.plugin` 的普通组件中调用。访问方式如下：
 
 - 插件根目录`main.py`中：`self` 对象内部方法，这些 API 均由插件类父类 `BasePlugin` 提供。
-- 插件任何组件类中：`self.plugin` 对象内部方法。
+- 普通组件类中：`self.plugin` 对象内部方法。
 
 ### 获取插件配置信息
 
@@ -224,6 +234,7 @@ async def invoke_llm(
     messages: list[provider_message.Message],
     funcs: list[resource_tool.LLMTool] = [],
     extra_args: dict[str, Any] = {},
+    timeout: float | None = None,
 ) -> provider_message.Message:
     """Invoke an LLM model"""
 
@@ -235,6 +246,45 @@ llm_message = await self.plugin.invoke_llm(
     extra_args={},
 )
 ```
+
+
+### 模型流式输出与用量
+
+| 方法 | 返回值 |
+| --- | --- |
+| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={})` | 异步迭代 `MessageChunk` |
+| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={})` | 异步迭代 `LLMStreamEvent` |
+
+
+参数与 `invoke_llm` 相同。`timeout` 单位为秒，非流式调用默认 120 秒。需要 token 用量时使用 `invoke_llm_with_usage`：
+
+```python
+from langbot_plugin.api.entities.builtin.provider.message import Message
+
+result = await self.plugin.invoke_llm_with_usage(
+    llm_model_uuid=model_uuid,
+    messages=[Message(role="user", content="Hello!")],
+)
+print(result.message.content)
+if result.usage is not None:
+    print(result.usage.total_tokens)
+```
+
+`usage` 可为 `None`，其中 `prompt_tokens`、`completion_tokens`、`total_tokens` 也可能缺失，不代表用量为零。供应商附加的缓存等用量字段会保留。
+
+```python
+async for event in self.plugin.invoke_llm_stream_events(
+    llm_model_uuid=model_uuid,
+    messages=[Message(role="user", content="Hello!")],
+):
+    if event.chunk is not None:
+        print(event.chunk.content)
+    if event.usage is not None:
+        print(event.usage.model_dump())
+```
+
+`LLMStreamEvent` 包含可选的 `chunk` 和 `usage`，末尾可能只有用量，没有文本。`invoke_llm_stream` 只返回文本或工具调用分块。`MessageChunk.content` 是当前片段，`all_content` 在提供时是累计文本；累计文本应用替换，增量文本才追加；`is_final` 为真时也可能仍有文本。模型流式调用不会直接发送平台消息，主动流式回复见[运行上下文 API](/zh/plugin/dev/apis/agent-run)。
 
 ### 列出可用解析器
 
@@ -428,7 +478,7 @@ file_bytes = await self.plugin.get_config_file("key")
 
 ## 知识库 API
 
-这些 API 可在任意组件中通过 `self.plugin` 访问，用于列出和检索 LangBot 实例中的所有知识库，不受流水线配置限制。
+这些 API 可在提供 `self.plugin` 的普通组件中访问，用于列出和检索 LangBot 实例中的所有知识库，不受流水线配置限制。
 
 ### 列出所有知识库
 
@@ -486,7 +536,7 @@ for entry in results:
 ```
 
 <Tip>
-这些 API 不需要 `query_id`，可以在任何组件中使用（包括 Tool 组件），且可以访问所有知识库，不受当前流水线配置限制。
+这些 API 不需要 `query_id`，可以在普通组件中使用（包括 Tool 组件），且可以访问所有知识库，不受当前流水线配置限制。
 </Tip>
 
 ## RAG API
@@ -676,3 +726,81 @@ async def get_knowledge_file_stream(self, storage_path: str) -> bytes:
 # 调用示例
 file_bytes = await self.plugin.get_knowledge_file_stream(context.file_object.storage_path)
 ```
+
+
+## 其他资源 API
+
+以下方法同样通过 `self.plugin` 调用。
+
+### 调用重排模型
+
+```python
+async def invoke_rerank(
+    self, rerank_model_uuid: str, query: str, documents: list[str],
+    top_k: int | None = None, extra_args: dict[str, Any] | None = None,
+    timeout: float = 60.0,
+) -> list[dict[str, Any]]:
+    ...
+
+scores = await self.plugin.invoke_rerank(
+    rerank_model_uuid=rerank_model_uuid,
+    query="How do I configure a bot?",
+    documents=["Bot configuration guide", "Plugin publishing guide"],
+    top_k=1,
+)
+```
+
+返回结果通常包含原文档索引 `index` 和相关性分数 `relevance_score`。
+
+### 调用解析器
+
+```python
+async def invoke_parser(
+    self, plugin_author: str, plugin_name: str, storage_path: str,
+    mime_type: str, filename: str, metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    ...
+
+parsers = await self.plugin.list_parsers(mime_type="application/pdf")
+if parsers:
+    parser = parsers[0]
+    parsed = await self.plugin.invoke_parser(
+        plugin_author=parser["plugin_author"],
+        plugin_name=parser["plugin_name"],
+        storage_path=storage_path,
+        mime_type="application/pdf",
+        filename="guide.pdf",
+    )
+```
+
+`storage_path` 是宿主存储中的文件路径，例如知识库摄取上下文的 `context.file_object.storage_path`，不是插件本地路径。返回字典包含 `text`、`sections`、`metadata`。
+
+### 列出向量记录
+
+```python
+async def vector_list(
+    self, collection_id: str, filters: dict[str, Any] | None = None,
+    limit: int = 20, offset: int = 0,
+) -> dict[str, Any]:
+    ...
+
+page = await self.plugin.vector_list(
+    collection_id=collection_id,
+    filters={"file_id": "doc_001"},
+    limit=20,
+    offset=0,
+)
+for item in page["items"]:
+    print(item["id"], item.get("metadata"))
+```
+
+返回 `items` 和 `total`。条目包含 `id`、`document`、`metadata`；`total` 是存储后端尽力提供的匹配数量。过滤条件使用上文的向量 API 格式。
+
+### 列出插件和命令
+
+```python
+manifests = await self.plugin.list_plugins_manifest()
+commands = await self.plugin.list_commands()
+```
+
+两个方法均不需要参数，分别返回宿主提供的插件清单列表和命令列表。

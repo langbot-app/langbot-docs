@@ -22,7 +22,7 @@ function links(node, result = []) {
 }
 
 test("every sitemap page has meaningful canonical Markdown and HTML discovery", async () => {
-  assert.equal(urls.length, 485);
+  assert.equal(urls.length, 491);
   for (const url of urls) {
     const route = relative(url);
     const text = await read(`${route}.md`);

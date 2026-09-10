@@ -114,6 +114,20 @@ class Welcome(EventProcessor):
 
 处理函数中，`ctx.event` 保存当前事件的数据，`ctx.config` 是当前处理器的配置。调用 `ctx.reply()` 回复消息，`ctx.log()` 记录日志。函数执行完毕，本次处理即结束。
 
+## 流式回复
+
+使用 `ctx.reply_stream()` 更新同一条回复，`update(text)` 接收当前的完整文本：
+
+```python
+async with ctx.reply_stream() as reply:
+    await reply.update("正在处理…")
+    await reply.update("处理完成。")
+```
+
+正常退出 `async with` 时完成回复。平台不支持流式、未开启流式回复或当前不是消息事件时，会在结束后发送一条完整消息；发生异常时不发送缓存中的未完成文本。调试模式仅模拟发送。
+
+此接口沿用 `ctx.reply()` 的权限。AgentRunner 可通过 `self.get_run_api(ctx).reply_stream()` 使用同一接口，模型返回文本仍不会自动发送。
+
 ## 事件注册
 
 通过 `@self.handler(事件类)` 注册处理函数，并将对应事件标识加入清单的 `spec.events`。例如，`MemberJoinedEvent` 对应 `group.member_joined`。
@@ -156,3 +170,5 @@ class Welcome(EventProcessor):
 
 - 查看 [EventProcessorDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/EventProcessorDemo) 中的更多示例。
 - 如果要扩展流水线的预处理、模型调用完成等步骤，请使用[事件监听器](/zh/plugin/dev/components/event-listener)。
+
+回复、模型、工具、历史与状态接口见[运行上下文 API](/zh/plugin/dev/apis/agent-run)。
