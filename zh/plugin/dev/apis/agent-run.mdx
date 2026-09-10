@@ -2,16 +2,13 @@
 title: "运行上下文 API"
 ---
 
-AgentRunner 和 EventProcessor 使用当前运行的 API，访问已授权的模型、工具、知识库和上下文。这两个组件不提供 `self.plugin`。
+Runner 的 `ctx.api` 携带当前运行的 ID、上下文与资源授权；自定义 `run(ctx)` 和事件处理函数使用同一种 `RunnerContext`。`self.plugin` 仍可访问[插件通用 API](/zh/plugin/dev/apis/common)，但不会自动代表当前运行。
 
 ## 访问方式
 
 ```python
-# Inside an EventProcessor handler
+# Inside Runner.run(ctx) or a registered handler
 api = ctx.api
-
-# Inside AgentRunner.run(ctx)
-api = self.get_run_api(ctx)
 ```
 
 以下示例中的 `api` 均指当前运行的 API。 除 `get_allowed_*` 同步方法和流式上下文／迭代接口外，下文方法均使用 `await` 调用。不要跨运行保存或复用这个对象。
@@ -52,7 +49,7 @@ knowledge_bases = api.get_allowed_knowledge_bases()  # Each item has kb_id
 
 ## 回复与日志
 
-| EventProcessor 方法 | 用途 |
+| Runner 方法 | 用途 |
 | --- | --- |
 | `await ctx.reply(text)` | 向当前事件的会话发送文本，返回动作结果。 |
 | `await ctx.log(text, level="info")` | 记录日志；级别为 `debug`、`info`、`warning`、`error`。 |
@@ -69,7 +66,7 @@ async with api.reply_stream() as reply:
 result = reply.result
 ```
 
-EventProcessor 也可使用 `ctx.reply_stream()`，它会同时记录动作的开始与结果。
+Runner 也可使用 `ctx.reply_stream()`，它会同时记录动作的开始与结果。
 
 `update(text)` 接收**当前完整文本**，不是新增片段；返回本次动作结果。正常退出时完成回复。支持流式且开启流式回复的消息事件会更新平台消息；其他可回复事件会缓存文本，在成功结束时发送一次。异常或取消时丢弃缓存中的未完成文本，已显示的内容不保证能撤回。调试模式仅模拟平台发送。
 
@@ -157,19 +154,19 @@ if api.ctx.context.available_apis.state:
 | `run_append_result(result)` | `AgentRunEvent` |
 | `run_finalize(run_id=None, status=None, reason=None)` | `AgentRun` |
 
-`run_id=None` 默认当前运行。普通 EventProcessor 处理函数返回后会自动结束，通常不需要手动追加或结束运行记录。AgentRunner 通过 `yield AgentRunResult` 上报结果，避免同时用 `run_append_result` 重复记录相同结果。
+`run_id=None` 表示当前运行。事件处理函数返回后自动结束；自定义 `run(ctx)` 可通过 `yield RunnerResult` 上报结果，不要再用 `run_append_result` 重复登记。
 
-## 结构化交互（AgentRunner）
+## 结构化交互（Runner）
 
-需要用户确认或填写表单时，通过 `yield AgentRunResult.interaction_requested(ctx.run_id, request)` 请求交互。`request` 可以是 `InteractionRequest` 对象或字典，必填字段为 `interaction_id`、`title`、`fallback_text`；可选字段有 `kind`（`form`、`confirmation`、`choice`）、`fields`、`actions`、`expires_at`。
+需要用户确认或填写表单时，通过 `yield RunnerResult.interaction_requested(ctx.run_id, request)` 请求交互。`request` 可以是 `InteractionRequest` 对象或字典，必填字段为 `interaction_id`、`title`、`fallback_text`；可选字段有 `kind`（`form`、`confirmation`、`choice`）、`fields`、`actions`、`expires_at`。
 
-清单需声明 `spec.capabilities.interactions: true` 和 `spec.permissions.interactions: [request]`，并获得宿主授权。界面支持情况见 `ctx.delivery.interactions`；提交结果以 `interaction.submitted` 事件返回。这是 Runner 的结果事件，不是 `ctx.api` 方法，EventProcessor 的普通处理函数不直接提供此接口。
+清单需声明 `spec.capabilities.interactions: true` 和 `spec.permissions.interactions: [request]`，并获得宿主授权。界面支持情况见 `ctx.delivery.interactions`；提交结果以 `interaction.submitted` 事件返回。这是 Runner 的结果事件，不是 `ctx.api` 方法，Runner 的普通处理函数不直接提供此接口。
 
 ## 错误处理
 
 ```python
-from langbot_plugin.api.proxies.agent_run import PermissionDeniedError
-from langbot_plugin.api.entities.builtin.agent_runner.errors import AgentAPIException
+from langbot_plugin.api.proxies.runner import PermissionDeniedError
+from langbot_plugin.api.entities.builtin.runner.errors import AgentAPIException
 
 try:
     result = await api.call_tool("event_get_actor", {})
@@ -179,4 +176,4 @@ except AgentAPIException as exc:
     await ctx.log(f"{exc.error.code}: {exc.error.message}", level="error")
 ```
 
-这是 EventProcessor 中的示例。`PermissionDeniedError` 表示资源、操作或能力未授权；`AgentAPIException.error` 包含 `code`、`message`、`retryable`、`details`。发送消息等动作超时后，结果可能不确定，不应仅依据 `retryable` 自动重发。
+这是 Runner 中的示例。`PermissionDeniedError` 表示资源、操作或能力未授权；`AgentAPIException.error` 包含 `code`、`message`、`retryable`、`details`。发送消息等动作超时后，结果可能不确定，不应仅依据 `retryable` 自动重发。

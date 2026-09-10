@@ -677,7 +677,7 @@
                     "group": "Component Development",
                     "pages": [
                       "en/plugin/dev/components/add",
-                      "en/plugin/dev/components/event-processor",
+                      "en/plugin/dev/components/runner",
                       "en/plugin/dev/components/event-listener",
                       "en/plugin/dev/components/command",
                       "en/plugin/dev/components/tool",
@@ -983,7 +983,7 @@
                     "group": "组件开发",
                     "pages": [
                       "zh/plugin/dev/components/add",
-                      "zh/plugin/dev/components/event-processor",
+                      "zh/plugin/dev/components/runner",
                       "zh/plugin/dev/components/event-listener",
                       "zh/plugin/dev/components/command",
                       "zh/plugin/dev/components/tool",
@@ -1284,7 +1284,7 @@
                     "group": "コンポーネント開発",
                     "pages": [
                       "ja/plugin/dev/components/add",
-                      "ja/plugin/dev/components/event-processor",
+                      "ja/plugin/dev/components/runner",
                       "ja/plugin/dev/components/event-listener",
                       "ja/plugin/dev/components/command",
                       "ja/plugin/dev/components/tool",

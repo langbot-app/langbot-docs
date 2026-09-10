@@ -66,7 +66,7 @@ account = await self.plugin.call_platform_api(
 
 ## イベントプロセッサーからの呼び出し
 
-EventProcessor と AgentRunner は実行に許可されたツールを使用し、汎用の `call_platform_api` は公開しません。現在のイベントで発起者の取得が許可されている場合の例です：
+Runner も `self.plugin` から Bot と宛先を指定して本ページの API を利用できます。現在のイベントの許可範囲で操作し、実行記録に残すには `ctx.api` または `ctx.reply()` を使用します：
 
 ```python
 tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}

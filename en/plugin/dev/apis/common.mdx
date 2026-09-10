@@ -4,7 +4,7 @@ title: "Plugin Common APIs"
 
 LangBot provides a series of APIs for plugins to operate various LangBot modules and control message contexts.
 
-Regular components such as `Command`, `EventListener`, and `Tool` use these APIs through `self.plugin`. `AgentRunner` and `EventProcessor` use [Run Context APIs](/en/plugin/dev/apis/agent-run), without `self.plugin`. See [Platform APIs](/en/plugin/dev/apis/platform) for platform queries and specific actions.
+All components can access these LangBot APIs through `self.plugin`. Runner also provides `ctx.api`, bound to the current invocation and its resource grants; see [Run Context APIs](/en/plugin/dev/apis/agent-run). Operations with an explicit bot and target are covered in [Platform APIs](/en/plugin/dev/apis/platform).
 
 ## Request API
 

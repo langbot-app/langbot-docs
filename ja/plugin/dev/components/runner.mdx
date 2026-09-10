@@ -1,28 +1,45 @@
 ---
-title: "コンポーネント: イベントプロセッサー"
+title: "コンポーネント: Runner"
 ---
 
-イベントプロセッサー（EventProcessor）は、メッセージ受信やメンバー参加などの Bot イベントを処理するコンポーネントです。インストール後、ユーザーは LangBot で「プラグインプロセッサー」を作成してコンポーネントを選び、Bot のイベントを紐付けます。
+Runner は Agent の実行ロジック、または「プラグインプロセッサー」用のイベント処理関数を実装するコンポーネントです。どちらも `RunnerContext` を受け取り、インストール後にユーザーがコンポーネントを選択・設定します。
 
 環境の準備は[プラグイン開発チュートリアル](/ja/plugin/dev/tutor)を参照してください。
 
-## イベントプロセッサーコンポーネントの追加
+## Runner コンポーネントの追加
 
-1 つのプラグインに複数のイベントプロセッサーを追加できます。プラグインのディレクトリで `lbp comp EventProcessor` を実行し、名前に `welcome`、説明に `Welcome new members` を入力します。
+1 つのプラグインに複数のイベントプロセッサーを追加できます。プラグインのディレクトリで `lbp comp Runner` を実行し、名前に `welcome`、説明に `Welcome new members` を入力します。
 
 ```bash
-lbp comp EventProcessor
+lbp comp Runner
 ```
 
-生成される `components/event_processor/welcome.yaml` はコンポーネントを定義するファイルで、`welcome.py` に処理を記述します。
+生成される `components/runner/welcome.yaml` はコンポーネントを定義するファイルで、`welcome.py` に処理を記述します。
 
-## マニフェストファイル: イベントプロセッサー
+## 実行ロジックの実装
+
+モデルの接続や独自の実行ループには `spec.usages: [agent]` を宣言し、`run(ctx)` から結果を返します：
+
+```python
+from langbot_plugin.api.definition.components.runner import Runner, RunnerContext, RunnerResult
+from langbot_plugin.api.entities.builtin.provider.message import Message
+
+
+class Echo(Runner):
+    async def run(self, ctx: RunnerContext):
+        yield RunnerResult.run_completed(
+            ctx.run_id,
+            message=Message(role="assistant", content=ctx.input.to_text()),
+        )
+```
+
+## マニフェストファイル: Runner
 
 `welcome.yaml` を次の内容に変更します。
 
 ```yaml
 apiVersion: langbot/v1
-kind: EventProcessor
+kind: Runner
 metadata:
   name: welcome
   label:
@@ -34,6 +51,7 @@ metadata:
     zh_Hans: 欢迎新成员，并响应 /hello 消息。
     ja_JP: 新しいメンバーを歓迎し、/hello に返信します。
 spec:
+  usages: [event]
   events:
     - group.member_joined
     - message.received
@@ -65,14 +83,17 @@ execution:
 
 `spec.events` は対応するイベント、`spec.config` は詳細画面でユーザーが変更できる設定です。この例ではメンバー参加とメッセージ受信に対応し、歓迎メッセージと返信の有効・無効を設定できます。返信には、上記の `tool_calling` と `permissions.tools` の指定が必要です。
 
+
+`spec.usages` は選択先を指定します。`agent` は Agent とパイプライン、`event` はプラグインプロセッサーです。`[agent, event]` の併記も可能です。`event` には `spec.events` が必要です。以下はイベント処理関数の例です。独自の `run(ctx)` から `await super().run(ctx)` で呼び出すこともできます。
+
 ## プラグインの実装
 
 `Welcome` クラスの `initialize` メソッド内で処理関数を登録します。`welcome.py` を次の内容に変更してください。
 
 ```python
-from langbot_plugin.api.definition.components.event_processor import (
-    EventProcessor,
-    EventProcessorContext,
+from langbot_plugin.api.definition.components.runner import (
+    Runner,
+    RunnerContext,
 )
 from langbot_plugin.api.entities.builtin.platform.events import (
     MemberJoinedEvent,
@@ -81,13 +102,13 @@ from langbot_plugin.api.entities.builtin.platform.events import (
 from langbot_plugin.api.entities.builtin.platform.message import Plain
 
 
-class Welcome(EventProcessor):
+class Welcome(Runner):
     async def initialize(self):
         await super().initialize()
 
         @self.handler(MemberJoinedEvent)
-        async def on_join(ctx: EventProcessorContext):
-            name = ctx.event.member.nickname or str(ctx.event.member.id)
+        async def on_join(ctx: RunnerContext):
+            name = ctx.platform_event.member.nickname or str(ctx.platform_event.member.id)
             await ctx.log(f"Member joined: {name}")
             if not ctx.config.get("reply_enabled", True):
                 await ctx.log("Replies are disabled for this processor")
@@ -97,9 +118,9 @@ class Welcome(EventProcessor):
             await ctx.log("Welcome action completed")
 
         @self.handler(MessageReceivedEvent)
-        async def on_message(ctx: EventProcessorContext):
+        async def on_message(ctx: RunnerContext):
             text = "".join(
-                item.text for item in ctx.event.message_chain if isinstance(item, Plain)
+                item.text for item in ctx.platform_event.message_chain if isinstance(item, Plain)
             ).strip()
             if text != "/hello":
                 await ctx.log("Message ignored: expected /hello")
@@ -112,7 +133,7 @@ class Welcome(EventProcessor):
 
 `on_join` は参加したメンバーに挨拶し、`on_message` は `/hello` に返信します。「返信する」を無効にすると、ログだけを記録します。
 
-`ctx.event` は現在のイベント、`ctx.config` はこのプロセッサーの設定です。返信には `ctx.reply()`、ログの記録には `ctx.log()` を使います。関数の実行が終わると、イベントの処理も終了します。
+`ctx.platform_event` は現在のイベント、`ctx.config` はこのプロセッサーの設定です。返信には `ctx.reply()`、ログの記録には `ctx.log()` を使います。関数の実行が終わると、イベントの処理も終了します。
 
 ## ストリーミング返信
 
@@ -126,7 +147,7 @@ async with ctx.reply_stream() as reply:
 
 `async with` ブロックが正常終了すると返信が完了します。ストリーミングが未対応・無効の場合やメッセージ以外のイベントでは、最後に全文を一度だけ送信します。例外時には、バッファ内の未完成テキストを送信しません。デバッグでは送信をシミュレーションします。
 
-権限は `ctx.reply()` と共通です。AgentRunner も `self.get_run_api(ctx).reply_stream()` を利用できます。モデルの出力テキストが自動送信されることはありません。
+権限は `ctx.reply()` と共通です。Runner も `self.get_run_api(ctx).reply_stream()` を利用できます。モデルの出力テキストが自動送信されることはありません。
 
 ## イベントの登録
 
@@ -168,7 +189,7 @@ async with ctx.reply_stream() as reply:
 
 ## 次のステップ
 
-- [EventProcessorDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/EventProcessorDemo)で他の実装例を確認できます。
+- [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo)で他の実装例を確認できます。
 - パイプラインの前処理やモデル呼び出し完了時などに機能を追加する場合は、[イベントリスナー](/ja/plugin/dev/components/event-listener)を使用してください。
 
 返信、モデル、ツール、履歴、状態は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。

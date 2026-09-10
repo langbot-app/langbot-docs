@@ -1,28 +1,45 @@
 ---
-title: "Component: Event Processor"
+title: "Component: Runner"
 ---
 
-The EventProcessor component handles Bot events such as incoming messages and new group members. After installing the plugin, users create a **Plugin processor** in LangBot, select the component, and bind Bot events to it.
+Runner implements Agent execution or typed event handlers for a **Plugin processor**. Both styles receive `RunnerContext`. After installation, users select and configure the component in LangBot.
 
 For environment setup, see the [plugin development tutorial](/en/plugin/dev/tutor).
 
-## Adding an Event Processor Component
+## Adding a Runner Component
 
-A plugin can contain several event processors. Run `lbp comp EventProcessor` in the plugin directory. Enter `welcome` as the name and `Welcome new members` as the description.
+A plugin can contain several event processors. Run `lbp comp Runner` in the plugin directory. Enter `welcome` as the name and `Welcome new members` as the description.
 
 ```bash
-lbp comp EventProcessor
+lbp comp Runner
 ```
 
-The generated `components/event_processor/welcome.yaml` defines the component, and `welcome.py` contains its implementation.
+The generated `components/runner/welcome.yaml` defines the component, and `welcome.py` contains its implementation.
 
-## Manifest File: Event Processor
+## Custom execution
+
+To integrate a model or implement an execution loop, declare `spec.usages: [agent]` and yield results from `run(ctx)`:
+
+```python
+from langbot_plugin.api.definition.components.runner import Runner, RunnerContext, RunnerResult
+from langbot_plugin.api.entities.builtin.provider.message import Message
+
+
+class Echo(Runner):
+    async def run(self, ctx: RunnerContext):
+        yield RunnerResult.run_completed(
+            ctx.run_id,
+            message=Message(role="assistant", content=ctx.input.to_text()),
+        )
+```
+
+## Manifest File: Runner
 
 Replace `welcome.yaml` with:
 
 ```yaml
 apiVersion: langbot/v1
-kind: EventProcessor
+kind: Runner
 metadata:
   name: welcome
   label:
@@ -34,6 +51,7 @@ metadata:
     zh_Hans: 欢迎新成员，并响应 /hello 消息。
     ja_JP: 新しいメンバーを歓迎し、/hello に返信します。
 spec:
+  usages: [event]
   events:
     - group.member_joined
     - message.received
@@ -65,14 +83,17 @@ execution:
 
 `spec.events` lists supported events, and `spec.config` defines settings users can edit on the processor detail page. This example handles new members and incoming messages, with a greeting and a reply switch. Sending replies requires the `tool_calling` and `permissions.tools` settings shown above.
 
+
+`spec.usages` controls where the component can be selected: `agent` for Agents and Pipelines, `event` for Plugin processors. Both can be declared as `[agent, event]`. Event usage requires `spec.events`. The example uses typed handlers; a custom `run(ctx)` can also call `await super().run(ctx)` to dispatch them.
+
 ## Plugin Implementation
 
 Register handlers in the `Welcome` class's `initialize` method. Replace `welcome.py` with:
 
 ```python
-from langbot_plugin.api.definition.components.event_processor import (
-    EventProcessor,
-    EventProcessorContext,
+from langbot_plugin.api.definition.components.runner import (
+    Runner,
+    RunnerContext,
 )
 from langbot_plugin.api.entities.builtin.platform.events import (
     MemberJoinedEvent,
@@ -81,13 +102,13 @@ from langbot_plugin.api.entities.builtin.platform.events import (
 from langbot_plugin.api.entities.builtin.platform.message import Plain
 
 
-class Welcome(EventProcessor):
+class Welcome(Runner):
     async def initialize(self):
         await super().initialize()
 
         @self.handler(MemberJoinedEvent)
-        async def on_join(ctx: EventProcessorContext):
-            name = ctx.event.member.nickname or str(ctx.event.member.id)
+        async def on_join(ctx: RunnerContext):
+            name = ctx.platform_event.member.nickname or str(ctx.platform_event.member.id)
             await ctx.log(f"Member joined: {name}")
             if not ctx.config.get("reply_enabled", True):
                 await ctx.log("Replies are disabled for this processor")
@@ -97,9 +118,9 @@ class Welcome(EventProcessor):
             await ctx.log("Welcome action completed")
 
         @self.handler(MessageReceivedEvent)
-        async def on_message(ctx: EventProcessorContext):
+        async def on_message(ctx: RunnerContext):
             text = "".join(
-                item.text for item in ctx.event.message_chain if isinstance(item, Plain)
+                item.text for item in ctx.platform_event.message_chain if isinstance(item, Plain)
             ).strip()
             if text != "/hello":
                 await ctx.log("Message ignored: expected /hello")
@@ -112,7 +133,7 @@ class Welcome(EventProcessor):
 
 `on_join` welcomes new members, and `on_message` replies to `/hello`. With **Send replies** turned off, they only write logs.
 
-`ctx.event` contains the event data, and `ctx.config` contains this processor's settings. Use `ctx.reply()` to reply and `ctx.log()` to write logs. Processing finishes when the handlers return.
+`ctx.platform_event` contains the event data, and `ctx.config` contains this processor's settings. Use `ctx.reply()` to reply and `ctx.log()` to write logs. Processing finishes when the handlers return.
 
 ## Streaming Replies
 
@@ -126,7 +147,7 @@ async with ctx.reply_stream() as reply:
 
 The reply finishes when the `async with` block exits normally. If streaming is unsupported, disabled, or the event is not a message, the Host sends one complete message at the end. Exceptions discard buffered partial text. Debug runs simulate delivery.
 
-This API uses the same permission as `ctx.reply()`. AgentRunner components can use `self.get_run_api(ctx).reply_stream()`; model output text is still not sent automatically.
+This API uses the same permission as `ctx.reply()`. Runner components can use `self.get_run_api(ctx).reply_stream()`; model output text is still not sent automatically.
 
 ## Registering Events
 
@@ -168,7 +189,7 @@ After installing the plugin, bind the Bot's **Member joined** and **Message rece
 
 ## Next Steps
 
-- Explore more examples in [EventProcessorDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/EventProcessorDemo).
+- Explore more examples in [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo).
 - To extend Pipeline steps such as preprocessing or completion of a model call, use [Event Listener](/en/plugin/dev/components/event-listener).
 
 See [Run Context APIs](/en/plugin/dev/apis/agent-run) for replies, models, tools, history, and state.

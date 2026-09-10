@@ -1,28 +1,45 @@
 ---
-title: "组件：事件处理器"
+title: "组件：Runner"
 ---
 
-事件处理器（EventProcessor）组件用于处理机器人收到的消息、成员入群等事件。用户安装插件后，可在 LangBot 中创建「插件处理器」并选择该组件，再绑定机器人的事件。
+Runner 组件用于实现 Agent 的运行逻辑，也可以按事件注册处理函数，供「插件处理器」使用。两种写法共用 `RunnerContext`，插件安装后由用户选择组件并配置。
 
 环境准备见[插件开发教程](/zh/plugin/dev/tutor)。
 
-## 添加事件处理器组件
+## 添加 Runner 组件
 
-单个插件中可以添加多个事件处理器。请在插件目录执行命令 `lbp comp EventProcessor`，名称填写 `welcome`，描述填写 `Welcome new members`。
+单个插件中可以添加多个事件处理器。请在插件目录执行命令 `lbp comp Runner`，名称填写 `welcome`，描述填写 `Welcome new members`。
 
 ```bash
-lbp comp EventProcessor
+lbp comp Runner
 ```
 
-生成的 `components/event_processor/welcome.yaml` 定义组件信息，`welcome.py` 是处理程序。
+生成的 `components/runner/welcome.yaml` 定义组件信息，`welcome.py` 是处理程序。
 
-## 清单文件：事件处理器
+## 自定义运行逻辑
+
+需要接入模型或实现自己的执行循环时，声明 `spec.usages: [agent]`，在 `run(ctx)` 中返回结果：
+
+```python
+from langbot_plugin.api.definition.components.runner import Runner, RunnerContext, RunnerResult
+from langbot_plugin.api.entities.builtin.provider.message import Message
+
+
+class Echo(Runner):
+    async def run(self, ctx: RunnerContext):
+        yield RunnerResult.run_completed(
+            ctx.run_id,
+            message=Message(role="assistant", content=ctx.input.to_text()),
+        )
+```
+
+## 清单文件：Runner
 
 将 `welcome.yaml` 修改为：
 
 ```yaml
 apiVersion: langbot/v1
-kind: EventProcessor
+kind: Runner
 metadata:
   name: welcome
   label:
@@ -34,6 +51,7 @@ metadata:
     zh_Hans: 欢迎新成员，并响应 /hello 消息。
     ja_JP: 新しいメンバーを歓迎し、/hello に返信します。
 spec:
+  usages: [event]
   events:
     - group.member_joined
     - message.received
@@ -65,14 +83,17 @@ execution:
 
 `spec.events` 指定支持的事件，`spec.config` 定义用户可在处理器详情页修改的配置。本例支持成员入群和收到消息，并提供欢迎语、回复开关两个配置项。回复消息需要上面的 `tool_calling` 和 `permissions.tools` 配置。
 
+
+`spec.usages` 决定组件可在哪类处理器中选择：`agent` 用于 Agent 和流水线，`event` 用于插件处理器。可同时声明 `[agent, event]`；包含 `event` 时必须填写 `spec.events`。本例使用事件处理函数，也可以在 `run(ctx)` 中按需调用 `await super().run(ctx)`。
+
 ## 插件处理
 
 在 `Welcome` 类的 `initialize` 方法中注册事件处理函数。将 `welcome.py` 修改为：
 
 ```python
-from langbot_plugin.api.definition.components.event_processor import (
-    EventProcessor,
-    EventProcessorContext,
+from langbot_plugin.api.definition.components.runner import (
+    Runner,
+    RunnerContext,
 )
 from langbot_plugin.api.entities.builtin.platform.events import (
     MemberJoinedEvent,
@@ -81,13 +102,13 @@ from langbot_plugin.api.entities.builtin.platform.events import (
 from langbot_plugin.api.entities.builtin.platform.message import Plain
 
 
-class Welcome(EventProcessor):
+class Welcome(Runner):
     async def initialize(self):
         await super().initialize()
 
         @self.handler(MemberJoinedEvent)
-        async def on_join(ctx: EventProcessorContext):
-            name = ctx.event.member.nickname or str(ctx.event.member.id)
+        async def on_join(ctx: RunnerContext):
+            name = ctx.platform_event.member.nickname or str(ctx.platform_event.member.id)
             await ctx.log(f"Member joined: {name}")
             if not ctx.config.get("reply_enabled", True):
                 await ctx.log("Replies are disabled for this processor")
@@ -97,9 +118,9 @@ class Welcome(EventProcessor):
             await ctx.log("Welcome action completed")
 
         @self.handler(MessageReceivedEvent)
-        async def on_message(ctx: EventProcessorContext):
+        async def on_message(ctx: RunnerContext):
             text = "".join(
-                item.text for item in ctx.event.message_chain if isinstance(item, Plain)
+                item.text for item in ctx.platform_event.message_chain if isinstance(item, Plain)
             ).strip()
             if text != "/hello":
                 await ctx.log("Message ignored: expected /hello")
@@ -112,7 +133,7 @@ class Welcome(EventProcessor):
 
 `on_join` 在成员入群时发送欢迎语，`on_message` 回复 `/hello`。关闭「发送回复」后，只记录日志。
 
-处理函数中，`ctx.event` 保存当前事件的数据，`ctx.config` 是当前处理器的配置。调用 `ctx.reply()` 回复消息，`ctx.log()` 记录日志。函数执行完毕，本次处理即结束。
+处理函数中，`ctx.platform_event` 保存当前事件的数据，`ctx.config` 是当前处理器的配置。调用 `ctx.reply()` 回复消息，`ctx.log()` 记录日志。函数执行完毕，本次处理即结束。
 
 ## 流式回复
 
@@ -126,7 +147,7 @@ async with ctx.reply_stream() as reply:
 
 正常退出 `async with` 时完成回复。平台不支持流式、未开启流式回复或当前不是消息事件时，会在结束后发送一条完整消息；发生异常时不发送缓存中的未完成文本。调试模式仅模拟发送。
 
-此接口沿用 `ctx.reply()` 的权限。AgentRunner 可通过 `self.get_run_api(ctx).reply_stream()` 使用同一接口，模型返回文本仍不会自动发送。
+此接口沿用 `ctx.reply()` 的权限。Runner 可通过 `self.get_run_api(ctx).reply_stream()` 使用同一接口，模型返回文本仍不会自动发送。
 
 ## 事件注册
 
@@ -168,7 +189,7 @@ async with ctx.reply_stream() as reply:
 
 ## 接下来做什么
 
-- 查看 [EventProcessorDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/EventProcessorDemo) 中的更多示例。
+- 查看 [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo) 中的更多示例。
 - 如果要扩展流水线的预处理、模型调用完成等步骤，请使用[事件监听器](/zh/plugin/dev/components/event-listener)。
 
 回复、模型、工具、历史与状态接口见[运行上下文 API](/zh/plugin/dev/apis/agent-run)。

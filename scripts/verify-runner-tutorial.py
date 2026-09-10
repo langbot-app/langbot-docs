@@ -1,6 +1,6 @@
 """Execute the published tutorial with the matching 4.11 SDK installed.
 
-Run: python scripts/verify-event-processor-tutorial.py
+Run: python scripts/verify-runner-tutorial.py
 The tool API is mocked; real Host/runtime checks are a separate validation layer.
 """
 
@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import yaml
+from langbot_plugin.api.definition.components.runner import RunnerContext
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,21 +20,21 @@ ROOT = Path(__file__).resolve().parents[1]
 def load_tutorial():
     examples = []
     for locale in ("zh", "en", "ja"):
-        path = ROOT / locale / "plugin/dev/components/event-processor.mdx"
+        path = ROOT / locale / "plugin/dev/components/runner.mdx"
         source = path.read_text()
         python = re.findall(r"^```python\n(.*?)^```", source, re.M | re.S)
         manifests = [
             block
             for block in re.findall(r"^```yaml\n(.*?)^```", source, re.M | re.S)
-            if "kind: EventProcessor" in block
+            if "kind: Runner" in block
         ]
-        python = [block for block in python if "class Welcome(EventProcessor):" in block]
+        python = [block for block in python if "class Welcome(Runner):" in block]
         assert len(python) == len(manifests) == 1, path
         examples.append((python[0], manifests[0]))
     assert examples[0] == examples[1] == examples[2], "Locale examples differ"
     code, manifest = examples[0]
     namespace = {}
-    exec(compile(code, "event-processor.mdx", "exec"), namespace)
+    exec(compile(code, "runner.mdx", "exec"), namespace)
     manifest = yaml.safe_load(manifest)
     assert manifest["spec"]["events"] == ["group.member_joined", "message.received"]
     assert manifest["spec"]["capabilities"]["tool_calling"] is True
@@ -121,12 +122,14 @@ async def main():
             )
         )
         component.get_run_api = Mock(return_value=api)
-        context = SimpleNamespace(
-            run_id=name, config={**defaults, **config}, event=SimpleNamespace(data=data)
-        )
+        context = RunnerContext.model_validate({
+            "run_id": name, "trigger": {"type": data["type"]},
+            "event": {"event_id": name, "event_type": data["type"], "source": "test", "data": data},
+            "config": {**defaults, **config}, "input": {}, "delivery": {"surface": "test"}, "resources": {}, "runtime": {},
+        })
         results = []
         try:
-            async for result in component.run(context):
+            async for result in component.invoke(context):
                 results.append(result)
         except RuntimeError as exc:
             assert failure and str(exc) == "Delivery failed"

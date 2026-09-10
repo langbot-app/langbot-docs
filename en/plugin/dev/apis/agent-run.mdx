@@ -2,16 +2,13 @@
 title: "Run Context APIs"
 ---
 
-AgentRunner and EventProcessor use run-scoped APIs to access authorized models, tools, knowledge bases, and context. Neither component exposes `self.plugin`.
+Runner provides `ctx.api` bound to the current run ID, context, and resource grants. Custom `run(ctx)` implementations and registered handlers share `RunnerContext`. `self.plugin` still exposes [Common APIs](/en/plugin/dev/apis/common), but does not automatically represent the current run.
 
 ## Access
 
 ```python
-# Inside an EventProcessor handler
+# Inside Runner.run(ctx) or a registered handler
 api = ctx.api
-
-# Inside AgentRunner.run(ctx)
-api = self.get_run_api(ctx)
 ```
 
 In the examples below, `api` refers to the current run API. Use `await` for the methods below, except synchronous `get_allowed_*` methods and streaming context/iterator APIs. Do not retain or reuse it across runs.
@@ -52,7 +49,7 @@ Check context capabilities through `api.ctx.context.available_apis`. Do not call
 
 ## Replies and logs
 
-| EventProcessor method | Purpose |
+| Runner method | Purpose |
 | --- | --- |
 | `await ctx.reply(text)` | Send text to the current event conversation; return the action result. |
 | `await ctx.log(text, level="info")` | Record a log at `debug`, `info`, `warning`, or `error` level. |
@@ -69,7 +66,7 @@ async with api.reply_stream() as reply:
 result = reply.result
 ```
 
-EventProcessor can use `ctx.reply_stream()` to also record the action start and result.
+Runner can use `ctx.reply_stream()` to also record the action start and result.
 
 `update(text)` takes the **complete text so far**, not a delta, and returns the action result. Normal exit completes the reply. Message events with platform streaming support enabled update the platform message; other replyable events buffer text and send once on successful exit. Errors or cancellation discard buffered partial text; already displayed content is not guaranteed to be retracted. Debug mode simulates platform delivery.
 
@@ -157,19 +154,19 @@ The following methods require the matching `available_apis` flag and only access
 | `run_append_result(result)` | `AgentRunEvent` |
 | `run_finalize(run_id=None, status=None, reason=None)` | `AgentRun` |
 
-`run_id=None` selects the current run. EventProcessor handlers finish automatically when they return and usually do not need to append or finalize records manually. AgentRunner reports results with `yield AgentRunResult`; do not also append the same result through `run_append_result`.
+`run_id=None` selects the current run. Registered handlers finish automatically when they return. Custom `run(ctx)` implementations can yield `RunnerResult`; do not append the same result again through `run_append_result`.
 
-## Structured interactions (AgentRunner)
+## Structured interactions (Runner)
 
-To request confirmation or form input, yield `AgentRunResult.interaction_requested(ctx.run_id, request)`. `request` accepts an `InteractionRequest` object or dictionary. Required fields are `interaction_id`, `title`, and `fallback_text`; optional fields include `kind` (`form`, `confirmation`, `choice`), `fields`, `actions`, and `expires_at`.
+To request confirmation or form input, yield `RunnerResult.interaction_requested(ctx.run_id, request)`. `request` accepts an `InteractionRequest` object or dictionary. Required fields are `interaction_id`, `title`, and `fallback_text`; optional fields include `kind` (`form`, `confirmation`, `choice`), `fields`, `actions`, and `expires_at`.
 
-This requires `spec.capabilities.interactions: true`, `spec.permissions.interactions: [request]`, and Host authorization. Inspect `ctx.delivery.interactions` for surface support; submissions return as `interaction.submitted` events. This is a Runner result event, not a method on `ctx.api`, and is not directly exposed by ordinary EventProcessor handlers.
+This requires `spec.capabilities.interactions: true`, `spec.permissions.interactions: [request]`, and Host authorization. Inspect `ctx.delivery.interactions` for surface support; submissions return as `interaction.submitted` events. This is a Runner result event, not a method on `ctx.api`, and is yielded from a custom run(ctx) implementation.
 
 ## Error handling
 
 ```python
-from langbot_plugin.api.proxies.agent_run import PermissionDeniedError
-from langbot_plugin.api.entities.builtin.agent_runner.errors import AgentAPIException
+from langbot_plugin.api.proxies.runner import PermissionDeniedError
+from langbot_plugin.api.entities.builtin.runner.errors import AgentAPIException
 
 try:
     result = await api.call_tool("event_get_actor", {})
@@ -179,4 +176,4 @@ except AgentAPIException as exc:
     await ctx.log(f"{exc.error.code}: {exc.error.message}", level="error")
 ```
 
-This example runs inside an EventProcessor. `PermissionDeniedError` means a resource, operation, or capability is not granted. `AgentAPIException.error` contains `code`, `message`, `retryable`, and `details`. A timed-out send may already have succeeded; do not resend solely because `retryable` is true.
+This example runs inside a Runner. `PermissionDeniedError` means a resource, operation, or capability is not granted. `AgentAPIException.error` contains `code`, `message`, `retryable`, and `details`. A timed-out send may already have succeeded; do not resend solely because `retryable` is true.

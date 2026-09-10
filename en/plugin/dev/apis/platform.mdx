@@ -66,7 +66,7 @@ Only actions declared by the adapter are allowed; this is not unrestricted pass-
 
 ## Calling from an event processor
 
-EventProcessor and AgentRunner use run-authorized tools and do not expose the generic `call_platform_api` method. For example, when the event supports actor lookup and grants it:
+Runner can also call these platform APIs through `self.plugin`, specifying the bot and target explicitly. To use the current event grants and record actions in its run trace, use `ctx.api` or `ctx.reply()`:
 
 ```python
 tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}

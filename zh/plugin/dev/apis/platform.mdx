@@ -66,7 +66,7 @@ account = await self.plugin.call_platform_api(
 
 ## 在事件处理器中调用
 
-EventProcessor 和 AgentRunner 使用运行授权的工具，不提供通用的 `call_platform_api` 方法。例如，在当前事件支持查询发起者且已授权时：
+Runner 也可以通过 `self.plugin` 调用本页的平台 API，显式指定机器人和目标。若要按当前事件的授权查询或回复，并在运行记录中展示动作，请使用 `ctx.api` 或 `ctx.reply()`：
 
 ```python
 tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}

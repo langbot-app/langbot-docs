@@ -15,12 +15,12 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
 
-from langbot_plugin.api.entities.builtin.agent_runner.context import AgentRunContext
-from langbot_plugin.api.entities.builtin.agent_runner.errors import (
+from langbot_plugin.api.entities.builtin.runner.context import RunnerContext
+from langbot_plugin.api.entities.builtin.runner.errors import (
     AgentAPIError,
     AgentAPIException,
 )
-from langbot_plugin.api.proxies.agent_run import AgentRunAPIProxy
+from langbot_plugin.api.proxies.runner import RunnerAPIProxy
 from langbot_plugin.api.proxies.langbot_api import LangBotAPIProxy
 from langbot_plugin.api.entities.builtin.provider.message import Message
 
@@ -74,7 +74,7 @@ class Host:
 
 
 def context():
-    return AgentRunContext.model_validate(
+    return RunnerContext.model_validate(
         {
             "run_id": "docs-run",
             "trigger": {"type": "user_message"},
@@ -131,7 +131,7 @@ async def execute(block, namespace):
         cls = (
             LangBotAPIProxy
             if owner == "self.plugin"
-            else AgentRunAPIProxy
+            else RunnerAPIProxy
             if owner == "api"
             else None
         )
@@ -154,7 +154,7 @@ async def main():
             assert blocks == snippets(locale, page), f"{page}: {locale} code differs"
         for block in blocks:
             host = Host()
-            api = AgentRunAPIProxy(context(), host)
+            api = RunnerAPIProxy(context(), host)
             ctx = SimpleNamespace(api=api, log=AsyncMock())
             namespace = {
                 "Any": Any,

@@ -4,7 +4,7 @@ title: "插件通用 API"
 
 LangBot 为插件提供了一系列 API ，用于操作 LangBot 各个模块、控制消息上下文等。
 
-`Command`、`EventListener`、`Tool` 等普通组件通过 `self.plugin` 使用本页 API。`AgentRunner` 和 `EventProcessor` 请使用[运行上下文 API](/zh/plugin/dev/apis/agent-run)，不使用 `self.plugin`。平台查询和专有动作见[平台 API](/zh/plugin/dev/apis/platform)。
+所有组件都可通过 `self.plugin` 使用本页的 LangBot API。Runner 的 `ctx.api` 则携带当前运行的上下文和资源授权，见[运行上下文 API](/zh/plugin/dev/apis/agent-run)。指定机器人和目标的平台操作见[平台 API](/zh/plugin/dev/apis/platform)。
 
 ## 请求 API
 

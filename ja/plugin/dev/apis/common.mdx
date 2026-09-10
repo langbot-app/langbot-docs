@@ -4,7 +4,7 @@ title: "プラグイン共通API"
 
 LangBotは、プラグインがさまざまなLangBotモジュールを操作し、メッセージコンテキストを制御するための一連のAPIを提供します。
 
-`Command`、`EventListener`、`Tool` などの通常のコンポーネントは `self.plugin` を使用します。`AgentRunner` と `EventProcessor` は `self.plugin` ではなく[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を使用してください。プラットフォームの操作は[プラットフォーム API](/ja/plugin/dev/apis/platform)を参照してください。
+すべてのコンポーネントは `self.plugin` から本ページの LangBot API を利用できます。Runner の `ctx.api` は現在の実行とリソースの許可範囲に結び付いています。[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。Bot と宛先を指定する操作は[プラットフォーム API](/ja/plugin/dev/apis/platform)に記載しています。
 
 ## リクエストAPI
 

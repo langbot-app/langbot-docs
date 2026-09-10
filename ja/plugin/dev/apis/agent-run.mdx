@@ -2,16 +2,13 @@
 title: "実行コンテキスト API"
 ---
 
-AgentRunner と EventProcessor は、現在の実行に許可されたモデル、ツール、ナレッジベース、コンテキストへアクセスする API を使用します。両コンポーネントでは `self.plugin` を使用できません。
+Runner の `ctx.api` は現在の実行 ID、コンテキスト、リソースの許可範囲に結び付いています。独自の `run(ctx)` と登録した処理関数は同じ `RunnerContext` を使用します。`self.plugin` から[共通 API](/ja/plugin/dev/apis/common)も利用できますが、現在の実行を自動的に表すものではありません。
 
 ## アクセス方法
 
 ```python
-# Inside an EventProcessor handler
+# Inside Runner.run(ctx) or a registered handler
 api = ctx.api
-
-# Inside AgentRunner.run(ctx)
-api = self.get_run_api(ctx)
 ```
 
 以下の `api` は現在の実行の API です。 同期の `get_allowed_*` とストリーミングのコンテキスト・イテレーター以外は、`await` で呼び出します。別の実行へ持ち越して再利用しないでください。
@@ -52,7 +49,7 @@ knowledge_bases = api.get_allowed_knowledge_bases()  # Each item has kb_id
 
 ## 返信とログ
 
-| EventProcessor メソッド | 用途 |
+| Runner メソッド | 用途 |
 | --- | --- |
 | `await ctx.reply(text)` | 現在のイベントの会話へテキストを送信し、操作結果を返します。 |
 | `await ctx.log(text, level="info")` | `debug`、`info`、`warning`、`error` のログを記録します。 |
@@ -69,7 +66,7 @@ async with api.reply_stream() as reply:
 result = reply.result
 ```
 
-EventProcessor では `ctx.reply_stream()` を使うと、操作の開始と結果も記録されます。
+Runner では `ctx.reply_stream()` を使うと、操作の開始と結果も記録されます。
 
 `update(text)` には差分ではなく**その時点の全文**を渡します。戻り値は操作結果です。正常終了時に返信を完了します。プラットフォームでストリーミング返信が有効なメッセージイベントでは表示を更新し、それ以外の返信可能なイベントでは正常終了時に全文を一度送信します。例外やキャンセルでは未送信のテキストを破棄しますが、表示済みの内容の撤回は保証されません。デバッグ時の送信は Mock です。
 
@@ -157,19 +154,19 @@ if api.ctx.context.available_apis.state:
 | `run_append_result(result)` | `AgentRunEvent` |
 | `run_finalize(run_id=None, status=None, reason=None)` | `AgentRun` |
 
-`run_id=None` は現在の実行を指します。EventProcessor はハンドラーの完了時に自動終了するため、通常は記録の手動追加・終了は不要です。AgentRunner は `yield AgentRunResult` で結果を報告します。同じ結果を `run_append_result` で重複登録しないでください。
+`run_id=None` は現在の実行を指します。登録した処理関数は戻ると自動終了します。独自の `run(ctx)` は `yield RunnerResult` で結果を報告できます。同じ結果を `run_append_result` で重複登録しないでください。
 
-## 構造化インタラクション（AgentRunner）
+## 構造化インタラクション（Runner）
 
-確認やフォーム入力には `yield AgentRunResult.interaction_requested(ctx.run_id, request)` を使用します。`request` は `InteractionRequest` または辞書で、必須フィールドは `interaction_id`、`title`、`fallback_text` です。`kind`（`form`、`confirmation`、`choice`）、`fields`、`actions`、`expires_at` は任意です。
+確認やフォーム入力には `yield RunnerResult.interaction_requested(ctx.run_id, request)` を使用します。`request` は `InteractionRequest` または辞書で、必須フィールドは `interaction_id`、`title`、`fallback_text` です。`kind`（`form`、`confirmation`、`choice`）、`fields`、`actions`、`expires_at` は任意です。
 
-`spec.capabilities.interactions: true` と `spec.permissions.interactions: [request]` の宣言、およびホストの許可が必要です。画面の対応状況は `ctx.delivery.interactions` で確認し、送信結果は `interaction.submitted` イベントとして返ります。これは Runner の結果イベントであり、`ctx.api` のメソッドではありません。通常の EventProcessor ハンドラーには直接公開されていません。
+`spec.capabilities.interactions: true` と `spec.permissions.interactions: [request]` の宣言、およびホストの許可が必要です。画面の対応状況は `ctx.delivery.interactions` で確認し、送信結果は `interaction.submitted` イベントとして返ります。これは Runner の結果イベントであり、`ctx.api` のメソッドではありません。独自の run(ctx) から yield します。
 
 ## エラー処理
 
 ```python
-from langbot_plugin.api.proxies.agent_run import PermissionDeniedError
-from langbot_plugin.api.entities.builtin.agent_runner.errors import AgentAPIException
+from langbot_plugin.api.proxies.runner import PermissionDeniedError
+from langbot_plugin.api.entities.builtin.runner.errors import AgentAPIException
 
 try:
     result = await api.call_tool("event_get_actor", {})
@@ -179,4 +176,4 @@ except AgentAPIException as exc:
     await ctx.log(f"{exc.error.code}: {exc.error.message}", level="error")
 ```
 
-EventProcessor 内の例です。`PermissionDeniedError` はリソース・操作・機能の権限不足を示します。`AgentAPIException.error` は `code`、`message`、`retryable`、`details` を持ちます。送信のタイムアウト時は成功済みの場合もあるため、`retryable` だけで再送しないでください。
+Runner 内の例です。`PermissionDeniedError` はリソース・操作・機能の権限不足を示します。`AgentAPIException.error` は `code`、`message`、`retryable`、`details` を持ちます。送信のタイムアウト時は成功済みの場合もあるため、`retryable` だけで再送しないでください。
