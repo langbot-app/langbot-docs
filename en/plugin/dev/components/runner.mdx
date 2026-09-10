@@ -6,6 +6,8 @@ Runner implements Agent execution or typed event handlers for a **Plugin process
 
 For environment setup, see the [plugin development tutorial](/en/plugin/dev/tutor).
 
+See [Context APIs](/en/plugin/dev/apis/agent-run#runner) for the complete `RunnerContext` fields and methods.
+
 ## Adding a Runner Component
 
 A plugin can contain several event processors. Run `lbp comp Runner` in the plugin directory. Enter `welcome` as the name and `Welcome new members` as the description.
@@ -147,7 +149,6 @@ async with ctx.reply_stream() as reply:
 
 The reply finishes when the `async with` block exits normally. If streaming is unsupported, disabled, or the event is not a message, the Host sends one complete message at the end. Exceptions discard buffered partial text. Debug runs simulate delivery.
 
-This API uses the same permission as `ctx.reply()`. Runner components can use `self.get_run_api(ctx).reply_stream()`; model output text is still not sent automatically.
 
 ## Registering Events
 
@@ -189,7 +190,8 @@ After installing the plugin, bind the Bot's **Member joined** and **Message rece
 
 ## Next Steps
 
+- See the [`RunnerContext` API reference](/en/plugin/dev/apis/agent-run#runner).
+- See [LangBot API](/en/plugin/dev/apis/common) for models, tools, knowledge bases, and storage.
+- See [Platform API](/en/plugin/dev/apis/platform) for messaging and other platform operations.
 - Explore more examples in [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo).
 - To extend Pipeline steps such as preprocessing or completion of a model call, use [Event Listener](/en/plugin/dev/components/event-listener).
-
-See [Run Context APIs](/en/plugin/dev/apis/agent-run) for replies, models, tools, history, and state.

@@ -64,15 +64,15 @@ account = await self.plugin.call_platform_api(
 
 Only actions declared by the adapter are allowed; this is not unrestricted pass-through to every platform endpoint. Plugins call the Host through the runtime, rather than accessing `ctx.query.adapter` or `adapter.bot`.
 
-## Calling from an event processor
+## Runner
 
-Runner can also call these platform APIs through `self.plugin`, specifying the bot and target explicitly. To use the current event grants and record actions in its run trace, use `ctx.api` or `ctx.reply()`:
+During Runner execution, model, tool, knowledge-base, storage, and platform calls through `self.plugin` automatically use the current run and its authorization. Do not pass `run_id`. Concurrent runs remain isolated. Do not continue these run-bound calls after the handler returns.
+
+Use `await ctx.get_bot_uuid()` for the current bot. Platform calls must match the tool grants for this invocation. Event-target grants cannot access another target. Ungranted actions, including platform-specific actions, are rejected. These calls also use Mock delivery in debug mode.
 
 ```python
-tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}
-if "event_get_actor" in tools:
-    actor = await ctx.api.call_tool("event_get_actor", {})
+tools = await ctx.get_available_tools()
+if any(tool["name"] == "event_get_actor" for tool in tools):
+    actor = await ctx.call_tool("event_get_actor")
     await ctx.log(str(actor))
 ```
-
-See [Run Context APIs](/en/plugin/dev/apis/agent-run) for access, permissions, and replies. Event debugging mocks platform tools; `self.plugin.call_platform_api()` in regular components performs real calls.

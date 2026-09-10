@@ -6,6 +6,8 @@ Runner は Agent の実行ロジック、または「プラグインプロセッ
 
 環境の準備は[プラグイン開発チュートリアル](/ja/plugin/dev/tutor)を参照してください。
 
+`RunnerContext` の完全なフィールドとメソッドは[コンテキスト API](/ja/plugin/dev/apis/agent-run#runner)を参照してください。
+
 ## Runner コンポーネントの追加
 
 1 つのプラグインに複数のイベントプロセッサーを追加できます。プラグインのディレクトリで `lbp comp Runner` を実行し、名前に `welcome`、説明に `Welcome new members` を入力します。
@@ -147,7 +149,6 @@ async with ctx.reply_stream() as reply:
 
 `async with` ブロックが正常終了すると返信が完了します。ストリーミングが未対応・無効の場合やメッセージ以外のイベントでは、最後に全文を一度だけ送信します。例外時には、バッファ内の未完成テキストを送信しません。デバッグでは送信をシミュレーションします。
 
-権限は `ctx.reply()` と共通です。Runner も `self.get_run_api(ctx).reply_stream()` を利用できます。モデルの出力テキストが自動送信されることはありません。
 
 ## イベントの登録
 
@@ -189,7 +190,8 @@ async with ctx.reply_stream() as reply:
 
 ## 次のステップ
 
+- [`RunnerContext` API リファレンス](/ja/plugin/dev/apis/agent-run#runner)を確認します。
+- モデル、ツール、ナレッジベース、ストレージについては [LangBot API](/ja/plugin/dev/apis/common)を確認します。
+- メッセージ送信などについては[プラットフォーム API](/ja/plugin/dev/apis/platform)を確認します。
 - [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo)で他の実装例を確認できます。
 - パイプラインの前処理やモデル呼び出し完了時などに機能を追加する場合は、[イベントリスナー](/ja/plugin/dev/components/event-listener)を使用してください。
-
-返信、モデル、ツール、履歴、状態は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。

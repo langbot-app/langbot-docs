@@ -64,15 +64,15 @@ account = await self.plugin.call_platform_api(
 
 アダプターが宣言した操作のみ呼び出せます。すべてのプラットフォーム API を任意に転送できるわけではありません。プラグインはランタイム経由でホストを呼び出し、`ctx.query.adapter` や `adapter.bot` には直接アクセスしません。
 
-## イベントプロセッサーからの呼び出し
+## Runner
 
-Runner も `self.plugin` から Bot と宛先を指定して本ページの API を利用できます。現在のイベントの許可範囲で操作し、実行記録に残すには `ctx.api` または `ctx.reply()` を使用します：
+Runner の実行中、`self.plugin` によるモデル、ツール、ナレッジベース、ストレージ、プラットフォーム呼び出しは現在の実行と権限に自動的に関連付けられます。`run_id` の指定は不要です。同時実行は互いに分離されます。ハンドラー終了後に実行に紐づく API を呼び続けないでください。
+
+現在のボットは `await ctx.get_bot_uuid()` で取得します。プラットフォーム呼び出しは今回のツール権限に従い、イベント対象だけが許可されている場合は別の対象を指定できません。プラットフォーム固有の操作を含む未許可の操作は拒否されます。デバッグではこれらの呼び出しも Mock を使用します。
 
 ```python
-tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}
-if "event_get_actor" in tools:
-    actor = await ctx.api.call_tool("event_get_actor", {})
+tools = await ctx.get_available_tools()
+if any(tool["name"] == "event_get_actor" for tool in tools):
+    actor = await ctx.call_tool("event_get_actor")
     await ctx.log(str(actor))
 ```
-
-アクセス方法、権限、返信の例は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。イベントデバッグのプラットフォームツールは Mock ですが、通常のコンポーネントの `self.plugin.call_platform_api()` は実際の呼び出しです。

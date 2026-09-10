@@ -22,6 +22,10 @@ from langbot_plugin.api.entities.builtin.runner.errors import (
 )
 from langbot_plugin.api.proxies.runner import RunnerAPIProxy
 from langbot_plugin.api.proxies.langbot_api import LangBotAPIProxy
+from langbot_plugin.api.proxies.event_context import EventContextProxy
+from langbot_plugin.api.proxies.execute_context import ExecuteContextProxy
+from langbot_plugin.api.entities.builtin.provider.session import Session
+from langbot_plugin.api.proxies.invocation import bind_invocation
 from langbot_plugin.api.entities.builtin.provider.message import Message
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +63,8 @@ class Host:
                 "prev_cursor": "older",
                 "next_cursor": None,
             },
+            "reply_message": {},
+            "set_query_var": {},
             "state_set": {"success": True},
             "state_get": {"value": "setup"},
         }
@@ -118,6 +124,65 @@ def snippets(locale, page):
     return re.findall(r"^```python\n(.*?)^```", source, re.M | re.S)
 
 
+def verify_context_reference():
+    source = (ROOT / "zh/plugin/dev/apis/agent-run.mdx").read_text()
+    query_methods = {
+        "reply",
+        "get_bot_uuid",
+        "set_query_var",
+        "get_query_var",
+        "get_query_vars",
+        "create_new_conversation",
+        "list_pipeline_knowledge_bases",
+        "retrieve_knowledge",
+    }
+    runner_methods = {
+        name
+        for name, value in RunnerContext.__dict__.items()
+        if callable(value) and not name.startswith("_")
+    }
+    runner_methods.discard("model_post_init")
+
+    for prefix in ("event_context", "context"):
+        missing = sorted(
+            name for name in query_methods if f"{prefix}.{name}(" not in source
+        )
+        assert not missing, f"{prefix} methods missing from context reference: {missing}"
+
+    for name in ("prevent_default", "prevent_postorder"):
+        assert f"event_context.{name}(" in source
+
+    missing = sorted(name for name in runner_methods if f"ctx.{name}(" not in source)
+    assert not missing, f"RunnerContext methods missing from context reference: {missing}"
+    assert "`platform_event`" in source
+
+    required_fields = {
+        "instance_uuid",
+        "workspace_uuid",
+        "placement_generation",
+        "query_id",
+        "query_uuid",
+        "eid",
+        "event_name",
+        "event",
+        "is_prevent_default",
+        "is_prevent_postorder",
+        "session",
+        "command_text",
+        "full_command_text",
+        "command",
+        "crt_command",
+        "params",
+        "crt_params",
+        "privilege",
+        *RunnerContext.model_fields,
+    }
+    missing = sorted(name for name in required_fields if f"`{name}`" not in source)
+    assert not missing, f"Context fields missing from context reference: {missing}"
+    assert "spec.permissions" not in source
+    assert "spec.capabilities" not in source
+
+
 async def execute(block, namespace):
     # Examples are function bodies; signature reference blocks may include stubs.
     function = "async def example():\n" + "\n".join(
@@ -131,6 +196,12 @@ async def execute(block, namespace):
         cls = (
             LangBotAPIProxy
             if owner == "self.plugin"
+            else EventContextProxy
+            if owner == "event_context"
+            else ExecuteContextProxy
+            if owner == "context"
+            else RunnerContext
+            if owner == "ctx"
             else RunnerAPIProxy
             if owner == "api"
             else None
@@ -147,6 +218,7 @@ async def execute(block, namespace):
 
 
 async def main():
+    verify_context_reference()
     total = 0
     for page in ("common", "agent-run", "platform"):
         blocks = snippets("zh", page)
@@ -154,9 +226,24 @@ async def main():
             assert blocks == snippets(locale, page), f"{page}: {locale} code differs"
         for block in blocks:
             host = Host()
-            api = RunnerAPIProxy(context(), host)
-            ctx = SimpleNamespace(api=api, log=AsyncMock())
+            ctx = context()
+            api = RunnerAPIProxy(ctx, host)
+            ctx._api = api
+            ctx._results = asyncio.Queue()
+            session = Session(launcher_type="group", launcher_id="docs-group", sender_id="docs-user")
             namespace = {
+                "event_context": EventContextProxy.model_construct(
+                    query_id=42,
+                    event=SimpleNamespace(sender_id="docs-user"),
+                    plugin_runtime_handler=host,
+                ),
+                "context": ExecuteContextProxy.model_construct(
+                    query_id=43,
+                    plugin_runtime_handler=host,
+                    crt_params=["Hello!"],
+                    session=session,
+                ),
+                "session": session,
                 "Any": Any,
                 "Message": Message,
                 "api": api,
@@ -171,7 +258,13 @@ async def main():
                 "bot_uuid": "bot",
                 "print": lambda *args: None,
             }
-            await execute(block, namespace)
+            with bind_invocation(host, api):
+                await execute(block, namespace)
+            for name, data in host.calls:
+                if name in {"reply_message", "set_query_var"}:
+                    expected_query = 42 if "event_context" in block else 43
+                    assert data["query_id"] == expected_query
+                    assert "run_id" not in data
             if "reply.update" in block:
                 ops = [
                     data["operation"]

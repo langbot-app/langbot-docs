@@ -64,15 +64,15 @@ account = await self.plugin.call_platform_api(
 
 只能调用适配器已声明的动作，并非任意平台接口都能透传。插件通过运行时调用宿主，不直接访问 `ctx.query.adapter` 或 `adapter.bot`。
 
-## 在事件处理器中调用
+## 运行器
 
-Runner 也可以通过 `self.plugin` 调用本页的平台 API，显式指定机器人和目标。若要按当前事件的授权查询或回复，并在运行记录中展示动作，请使用 `ctx.api` 或 `ctx.reply()`：
+运行器执行期间，`self.plugin` 的模型、工具、知识库、存储和平台调用自动关联当前运行并执行授权检查，无需传入 `run_id`。同一插件的并发运行互相隔离。不要在处理函数返回后继续调用这些运行关联的 API。
+
+通过 `await ctx.get_bot_uuid()` 获取当前机器人。平台调用必须匹配本次工具授权：仅授权当前事件目标时，不能改传其他目标；未授权的动作（包括平台专有动作）会被拒绝。调试中的这些调用同样使用 Mock。
 
 ```python
-tools = {tool.tool_name for tool in ctx.api.get_allowed_tools()}
-if "event_get_actor" in tools:
-    actor = await ctx.api.call_tool("event_get_actor", {})
+tools = await ctx.get_available_tools()
+if any(tool["name"] == "event_get_actor" for tool in tools):
+    actor = await ctx.call_tool("event_get_actor")
     await ctx.log(str(actor))
 ```
-
-访问方式、权限与回复示例见[运行上下文 API](/zh/plugin/dev/apis/agent-run)。事件调试中的平台工具使用 Mock；普通组件的 `self.plugin.call_platform_api()` 是实际调用。

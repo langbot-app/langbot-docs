@@ -62,4 +62,4 @@ msg_chain = MessageChain([
 
 ## 平台 API
 
-查询用户、管理群组和调用平台专有接口，请使用[平台 API](/zh/plugin/dev/apis/platform)。Runner 通过[运行上下文 API](/zh/plugin/dev/apis/agent-run)调用已授权的平台工具。
+查询用户、管理群组和调用平台专有接口，请使用[平台 API](/zh/plugin/dev/apis/platform)。运行器使用相同的 `self.plugin` 入口，当前会话回复使用 `ctx.reply()`。

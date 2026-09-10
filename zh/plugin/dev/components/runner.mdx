@@ -1,12 +1,14 @@
 ---
-title: "组件：Runner"
+title: "组件：运行器"
 ---
 
-Runner 组件用于实现 Agent 的运行逻辑，也可以按事件注册处理函数，供「插件处理器」使用。两种写法共用 `RunnerContext`，插件安装后由用户选择组件并配置。
+运行器组件通过 SDK 的 `Runner` 类型实现 Agent 的运行逻辑，也可以按事件注册处理函数，供「插件处理器」使用。两种写法共用 `RunnerContext`，插件安装后由用户选择组件并配置。
 
 环境准备见[插件开发教程](/zh/plugin/dev/tutor)。
 
-## 添加 Runner 组件
+`RunnerContext` 的完整字段和方法见[上下文 API](/zh/plugin/dev/apis/agent-run#runner)。
+
+## 添加运行器组件
 
 单个插件中可以添加多个事件处理器。请在插件目录执行命令 `lbp comp Runner`，名称填写 `welcome`，描述填写 `Welcome new members`。
 
@@ -33,7 +35,7 @@ class Echo(Runner):
         )
 ```
 
-## 清单文件：Runner
+## 清单文件：运行器
 
 将 `welcome.yaml` 修改为：
 
@@ -147,7 +149,6 @@ async with ctx.reply_stream() as reply:
 
 正常退出 `async with` 时完成回复。平台不支持流式、未开启流式回复或当前不是消息事件时，会在结束后发送一条完整消息；发生异常时不发送缓存中的未完成文本。调试模式仅模拟发送。
 
-此接口沿用 `ctx.reply()` 的权限。Runner 可通过 `self.get_run_api(ctx).reply_stream()` 使用同一接口，模型返回文本仍不会自动发送。
 
 ## 事件注册
 
@@ -189,7 +190,8 @@ async with ctx.reply_stream() as reply:
 
 ## 接下来做什么
 
+- 查看 [`RunnerContext` 上下文 API](/zh/plugin/dev/apis/agent-run#runner)。
+- 查看模型、工具、知识库和存储相关的 [LangBot API](/zh/plugin/dev/apis/common)。
+- 查看消息发送等[平台 API](/zh/plugin/dev/apis/platform)。
 - 查看 [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo) 中的更多示例。
 - 如果要扩展流水线的预处理、模型调用完成等步骤，请使用[事件监听器](/zh/plugin/dev/components/event-listener)。
-
-回复、模型、工具、历史与状态接口见[运行上下文 API](/zh/plugin/dev/apis/agent-run)。
