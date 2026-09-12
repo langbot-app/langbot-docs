@@ -86,7 +86,7 @@ execution:
 `spec.events` 指定支持的事件，`spec.config` 定义用户可在处理器详情页修改的配置。本例支持成员入群和收到消息，并提供欢迎语、回复开关两个配置项。回复消息需要上面的 `tool_calling` 和 `permissions.tools` 配置。
 
 
-`spec.usages` 决定组件可在哪类处理器中选择：`agent` 用于 Agent 和流水线，`event` 用于插件处理器。可同时声明 `[agent, event]`；包含 `event` 时必须填写 `spec.events`。本例使用事件处理函数，也可以在 `run(ctx)` 中按需调用 `await super().run(ctx)`。
+`spec.usages` 必填、无默认值，决定组件可在哪类处理器中选择：`agent` 用于 Agent 和流水线，`event` 用于插件处理器。可同时声明 `[agent, event]`；包含 `event` 时必须填写 `spec.events`。本例使用事件处理函数，也可以在 `run(ctx)` 中按需调用 `await super().run(ctx)`。
 
 ## 插件处理
 

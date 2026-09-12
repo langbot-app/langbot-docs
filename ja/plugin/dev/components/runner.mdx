@@ -86,7 +86,7 @@ execution:
 `spec.events` は対応するイベント、`spec.config` は詳細画面でユーザーが変更できる設定です。この例ではメンバー参加とメッセージ受信に対応し、歓迎メッセージと返信の有効・無効を設定できます。返信には、上記の `tool_calling` と `permissions.tools` の指定が必要です。
 
 
-`spec.usages` は選択先を指定します。`agent` は Agent とパイプライン、`event` はプラグインプロセッサーです。`[agent, event]` の併記も可能です。`event` には `spec.events` が必要です。以下はイベント処理関数の例です。独自の `run(ctx)` から `await super().run(ctx)` で呼び出すこともできます。
+`spec.usages` は必須で、デフォルト値はありません。`spec.usages` は選択先を指定します。`agent` は Agent とパイプライン、`event` はプラグインプロセッサーです。`[agent, event]` の併記も可能です。`event` には `spec.events` が必要です。以下はイベント処理関数の例です。独自の `run(ctx)` から `await super().run(ctx)` で呼び出すこともできます。
 
 ## プラグインの実装
 

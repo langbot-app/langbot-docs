@@ -86,7 +86,7 @@ execution:
 `spec.events` lists supported events, and `spec.config` defines settings users can edit on the processor detail page. This example handles new members and incoming messages, with a greeting and a reply switch. Sending replies requires the `tool_calling` and `permissions.tools` settings shown above.
 
 
-`spec.usages` controls where the component can be selected: `agent` for Agents and Pipelines, `event` for Plugin processors. Both can be declared as `[agent, event]`. Event usage requires `spec.events`. The example uses typed handlers; a custom `run(ctx)` can also call `await super().run(ctx)` to dispatch them.
+`spec.usages` is required and has no default. `spec.usages` controls where the component can be selected: `agent` for Agents and Pipelines, `event` for Plugin processors. Both can be declared as `[agent, event]`. Event usage requires `spec.events`. The example uses typed handlers; a custom `run(ctx)` can also call `await super().run(ctx)` to dispatch them.
 
 ## Plugin Implementation
 
