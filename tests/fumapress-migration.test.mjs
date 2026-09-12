@@ -170,8 +170,8 @@ test("MDX compatibility normalization removes internal .html route suffixes", ()
 test("canonical MDX and nested OpenAPI sources are discovered", async () => {
   const docs = JSON.parse(await readFile(path.join(root, "docs.json"), "utf8"));
   const pages = await collectMdxDocuments(root);
-  assert.equal(pages.length, 305);
-  assert.deepEqual(Object.fromEntries([...pages.reduce((acc, page) => acc.set(page.split("/", 1)[0], (acc.get(page.split("/", 1)[0]) ?? 0) + 1), new Map()).entries()]), { en: 97, zh: 111, ja: 97 });
+  assert.equal(pages.length, 314);
+  assert.deepEqual(Object.fromEntries([...pages.reduce((acc, page) => acc.set(page.split("/", 1)[0], (acc.get(page.split("/", 1)[0]) ?? 0) + 1), new Map()).entries()]), { en: 100, zh: 114, ja: 100 });
   assert.deepEqual(collectOpenApiSources(docs), [
     { locale: "en", source: "openapi/service-api-en.json", directory: "en/api-reference" },
     { locale: "zh", source: "openapi/service-api-zh.json", directory: "zh/api-reference" },
@@ -216,7 +216,7 @@ test("prebuild is deterministic and preserves local assets and SEO files", async
     const first = await prepareFumapress({ root, outRoot: temp });
     const second = await prepareFumapress({ root, outRoot: temp });
     assert.deepEqual(first, second);
-    assert.equal(first.documents, 305);
+    assert.equal(first.documents, 314);
     assert.equal(first.fallbackDefaults, 0);
     assert.equal(first.localeOnlyDocuments, 14);
     assert.equal(first.redirects, 103);

@@ -43,9 +43,9 @@ function staticHtmlForUrlPath(urlPath) {
   return path.join(publicRoot, ...parts, "index.html");
 }
 
-test("all 305 canonical localized documents have static HTML", async () => {
+test("all canonical localized documents have static HTML", async () => {
   const documents = await collectMdxDocuments(root);
-  assert.equal(documents.length, 305);
+  assert.equal(documents.length, 314);
   const missing = [];
   for (const document of documents) {
     try {
@@ -193,7 +193,7 @@ test("all locales emit the OpenAPI surface with endpoint semantics", async () =>
   }
 });
 
-test("canonical sitemap routes match the legacy Mintlify directory structure", async () => {
+test("canonical sitemap preserves legacy routes and includes current documents", async () => {
   const legacy = new Set((await readFile(path.join(root, "tests/fixtures/legacy-sitemap-routes.txt"), "utf8"))
     .trim().split("\n").map((route) => route.replace(/\/$/, "")));
   // Mintlify accidentally indexed this repository maintenance note; preserve
@@ -206,7 +206,11 @@ test("canonical sitemap routes match the legacy Mintlify directory structure", a
   const sitemap = await readFile(path.join(publicRoot, "sitemap.xml"), "utf8");
   const actual = new Set([...sitemap.matchAll(/<loc>https:\/\/langbot\.app\/docs(\/[^<]+)<\/loc>/g)]
     .map((match) => decodeURIComponent(match[1]).replace(/\/$/, "")));
-  assert.deepEqual([...actual].sort(), [...legacy].sort());
+  const expected = new Set(legacy);
+  for (const document of await collectMdxDocuments(root)) {
+    expected.add(`/${document.replace(/\.mdx$/, "").replace(/\/index$/, "")}`);
+  }
+  assert.deepEqual([...actual].sort(), [...expected].sort());
 });
 
 const locales = ["en", "zh", "ja"];

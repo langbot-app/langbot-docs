@@ -1,116 +1,15 @@
 ---
-title: "Plugin Common APIs"
+title: "LangBot API"
 ---
 
-LangBot provides a series of APIs for plugins to operate various LangBot modules and control message contexts.
-
-## Request API
-
-Operations for the currently processing user request (message). Only available in `EventListener` and `Command` components. Access methods:
-
-- In event handler methods of `EventListener`: Internal methods of `event_context: context.EventContext` object
-- In subcommand handler methods of `Command`: Internal methods of `context: ExecuteContext` object
-
-### Direct Reply Message
-
-Directly reply with a message chain to the session where the current request is located.
-
-For message chain construction methods, please refer to [Message Platform Entities](/en/plugin/dev/apis/messages).
-
-```python
-async def reply(
-    self, message_chain: platform_message.MessageChain, quote_origin: bool = False
-):
-    """Reply to the message request
-
-    Args:
-        message_chain (platform.types.MessageChain): LangBot message chain
-        quote_origin (bool): Whether to quote the original message
-    """
-
-# Usage example
-await event_context.reply(
-    platform_message.MessageChain([
-        platform_message.Plain(text="Hello, world!"),
-    ]),
-)
-```
-
-### Get Bot UUID
-
-Get the UUID of the bot that originated the current request.
-
-```python
-async def get_bot_uuid(self) -> str:
-    """Get the bot uuid"""
-
-# Usage example
-bot_uuid = await event_context.get_bot_uuid()
-```
-
-### Set Request Variables
-
-Some information in a single request is stored in request variables. When using external Agent platforms like Dify, [these variables are explicitly passed to Agent platforms](/en/deploy/pipelines/readme.html#request-variables).
-
-```python
-async def set_query_var(self, key: str, value: Any):
-    """Set a query variable"""
-
-# Usage example
-await event_context.set_query_var("key", "value")
-```
-
-### Get Request Variables
-
-Get a single request variable.
-
-```python
-async def get_query_var(self, key: str) -> Any:
-    """Get a query variable"""
-
-# Usage example
-query_var = await event_context.get_query_var("key")
-```
-
-### Get All Request Variables
-
-```python
-async def get_query_vars(self) -> dict[str, Any]:
-    """Get all query variables"""
-
-# Usage example
-query_vars = await event_context.get_query_vars()
-```
-
-### List Pipeline Knowledge Bases
-
-Get the list of knowledge bases configured for the pipeline used by the current request.
-
-```python
-async def list_pipeline_knowledge_bases(self) -> list[dict[str, Any]]:
-    """List knowledge bases configured for the current pipeline"""
-
-# Usage example
-knowledge_bases = await event_context.list_pipeline_knowledge_bases()
-
-# Return example
-[
-    {
-        "uuid": "kb_uuid",
-        "name": "Product Docs",
-        "description": "Internal product documentation",
-    }
-]
-```
-
-Only returns knowledge bases bound in the `Local Agent` configuration of the pipeline corresponding to the current request. If the current pipeline has no knowledge bases configured, or does not use `Local Agent`, an empty list is returned.
+Use `self.plugin` for models, tools, knowledge bases, and storage. For the current event, replies, and conversation state, see [Context APIs](/en/plugin/dev/apis/agent-run).
 
 ## LangBot API
 
 These APIs can be called in any plugin component. Access methods:
 
 - In the plugin root directory `main.py`: Internal methods of the `self` object, these APIs are all provided by the plugin class parent class `BasePlugin`.
-- In any plugin component class: Internal methods of the `self.plugin` object.
+- In regular plugin component classes: Internal methods of the `self.plugin` object.
 
 ### Get Plugin Configuration
 
@@ -224,6 +123,7 @@ async def invoke_llm(
     messages: list[provider_message.Message],
     funcs: list[resource_tool.LLMTool] = [],
     extra_args: dict[str, Any] = {},
+    timeout: float | None = None,
 ) -> provider_message.Message:
     """Invoke an LLM model"""
 
@@ -235,6 +135,45 @@ llm_message = await self.plugin.invoke_llm(
     extra_args={},
 )
 ```
+
+
+### Model streaming and usage
+
+| Method | Returns |
+| --- | --- |
+| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={})` | Async iterator of `MessageChunk` |
+| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={})` | Async iterator of `LLMStreamEvent` |
+
+
+Parameters match `invoke_llm`. `timeout` is in seconds; non-streaming calls default to 120 seconds. Use `invoke_llm_with_usage` when token usage is needed:
+
+```python
+from langbot_plugin.api.entities.builtin.provider.message import Message
+
+result = await self.plugin.invoke_llm_with_usage(
+    llm_model_uuid=model_uuid,
+    messages=[Message(role="user", content="Hello!")],
+)
+print(result.message.content)
+if result.usage is not None:
+    print(result.usage.total_tokens)
+```
+
+`usage` may be `None`; `prompt_tokens`, `completion_tokens`, and `total_tokens` may also be absent. Missing values do not mean zero usage. Additional provider fields, such as cache usage, are preserved.
+
+```python
+async for event in self.plugin.invoke_llm_stream_events(
+    llm_model_uuid=model_uuid,
+    messages=[Message(role="user", content="Hello!")],
+):
+    if event.chunk is not None:
+        print(event.chunk.content)
+    if event.usage is not None:
+        print(event.usage.model_dump())
+```
+
+`LLMStreamEvent` has optional `chunk` and `usage`; the final event may contain usage without text. `invoke_llm_stream` yields only message/tool-call chunks. `MessageChunk.content` is the current chunk; `all_content`, when supplied, is accumulated text. Replace with accumulated text and append only deltas; an `is_final` chunk may still carry text. Model streaming does not send platform messages; see [Run Context APIs](/en/plugin/dev/apis/agent-run) for explicit streaming replies.
 
 ### List Available Parsers
 
@@ -428,7 +367,7 @@ Use this in conjunction with configuration fields of type [``file or array[file`
 
 ## Knowledge Base API
 
-These APIs are accessible via `self.plugin` in any component, allowing you to list and retrieve from all knowledge bases in the LangBot instance without pipeline restrictions.
+These APIs are accessible via `self.plugin` in regular components, allowing you to list and retrieve from all knowledge bases in the LangBot instance without pipeline restrictions.
 
 ### List All Knowledge Bases
 
@@ -486,7 +425,7 @@ for entry in results:
 ```
 
 <Tip>
-These APIs do not require a `query_id` and can be used in any component (including Tool components). They can access all knowledge bases without being restricted to the current pipeline's configuration.
+These APIs do not require a `query_id` and can be used in regular components (including Tool components). They can access all knowledge bases without being restricted to the current pipeline's configuration.
 </Tip>
 
 ## RAG API
@@ -676,3 +615,81 @@ async def get_knowledge_file_stream(self, storage_path: str) -> bytes:
 # Usage example
 file_bytes = await self.plugin.get_knowledge_file_stream(context.file_object.storage_path)
 ```
+
+
+## Additional resource APIs
+
+These methods are also called through `self.plugin`.
+
+### Invoke a rerank model
+
+```python
+async def invoke_rerank(
+    self, rerank_model_uuid: str, query: str, documents: list[str],
+    top_k: int | None = None, extra_args: dict[str, Any] | None = None,
+    timeout: float = 60.0,
+) -> list[dict[str, Any]]:
+    ...
+
+scores = await self.plugin.invoke_rerank(
+    rerank_model_uuid=rerank_model_uuid,
+    query="How do I configure a bot?",
+    documents=["Bot configuration guide", "Plugin publishing guide"],
+    top_k=1,
+)
+```
+
+Results usually contain the original document `index` and `relevance_score`.
+
+### Invoke a parser
+
+```python
+async def invoke_parser(
+    self, plugin_author: str, plugin_name: str, storage_path: str,
+    mime_type: str, filename: str, metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    ...
+
+parsers = await self.plugin.list_parsers(mime_type="application/pdf")
+if parsers:
+    parser = parsers[0]
+    parsed = await self.plugin.invoke_parser(
+        plugin_author=parser["plugin_author"],
+        plugin_name=parser["plugin_name"],
+        storage_path=storage_path,
+        mime_type="application/pdf",
+        filename="guide.pdf",
+    )
+```
+
+`storage_path` is a Host storage path, such as `context.file_object.storage_path` during knowledge ingestion, not a plugin-local path. The result dictionary contains `text`, `sections`, and `metadata`.
+
+### List vector records
+
+```python
+async def vector_list(
+    self, collection_id: str, filters: dict[str, Any] | None = None,
+    limit: int = 20, offset: int = 0,
+) -> dict[str, Any]:
+    ...
+
+page = await self.plugin.vector_list(
+    collection_id=collection_id,
+    filters={"file_id": "doc_001"},
+    limit=20,
+    offset=0,
+)
+for item in page["items"]:
+    print(item["id"], item.get("metadata"))
+```
+
+Returns `items` and `total`. Items contain `id`, `document`, and `metadata`; `total` is a best-effort matching count from the storage backend. Filters use the vector API format above.
+
+### List plugins and commands
+
+```python
+manifests = await self.plugin.list_plugins_manifest()
+commands = await self.plugin.list_commands()
+```
+
+Both methods take no arguments and return the Host-provided plugin manifest list and command list respectively.

@@ -1,116 +1,15 @@
 ---
-title: "プラグイン共通API"
+title: "LangBot API"
 ---
 
-LangBotは、プラグインがさまざまなLangBotモジュールを操作し、メッセージコンテキストを制御するための一連のAPIを提供します。
-
-## リクエストAPI
-
-現在処理中のユーザーリクエスト(メッセージ)に対する操作です。`EventListener`と`Command`コンポーネントでのみ使用可能です。アクセス方法:
-
-- `EventListener`のイベントハンドラメソッド内: `event_context: context.EventContext`オブジェクトの内部メソッド
-- `Command`のサブコマンドハンドラメソッド内: `context: ExecuteContext`オブジェクトの内部メソッド
-
-### 直接返信メッセージ
-
-現在のリクエストが存在するセッションにメッセージチェーンで直接返信します。
-
-メッセージチェーンの構築方法については、[メッセージプラットフォームエンティティ](/en/plugin/dev/apis/messages)を参照してください。
-
-```python
-async def reply(
-    self, message_chain: platform_message.MessageChain, quote_origin: bool = False
-):
-    """メッセージリクエストに返信する
-
-    Args:
-        message_chain (platform.types.MessageChain): LangBotメッセージチェーン
-        quote_origin (bool): 元のメッセージを引用するかどうか
-    """
-
-# 使用例
-await event_context.reply(
-    platform_message.MessageChain([
-        platform_message.Plain(text="Hello, world!"),
-    ]),
-)
-```
-
-### Bot UUIDの取得
-
-現在のリクエストを発行したBotのUUIDを取得します。
-
-```python
-async def get_bot_uuid(self) -> str:
-    """Bot UUIDを取得する"""
-
-# 使用例
-bot_uuid = await event_context.get_bot_uuid()
-```
-
-### リクエスト変数の設定
-
-単一のリクエスト内の一部の情報は、リクエスト変数に保存されます。Difyなどの外部Agent プラットフォームを使用する場合、[これらの変数はAgent プラットフォームに明示的に渡されます](/en/deploy/pipelines/readme.html#request-variables)。
-
-```python
-async def set_query_var(self, key: str, value: Any):
-    """クエリ変数を設定する"""
-
-# 使用例
-await event_context.set_query_var("key", "value")
-```
-
-### リクエスト変数の取得
-
-単一のリクエスト変数を取得します。
-
-```python
-async def get_query_var(self, key: str) -> Any:
-    """クエリ変数を取得する"""
-
-# 使用例
-query_var = await event_context.get_query_var("key")
-```
-
-### すべてのリクエスト変数の取得
-
-```python
-async def get_query_vars(self) -> dict[str, Any]:
-    """すべてのクエリ変数を取得する"""
-
-# 使用例
-query_vars = await event_context.get_query_vars()
-```
-
-### 現在のパイプラインに設定されたナレッジベース一覧の取得
-
-現在のリクエストが使用するパイプラインに設定されたナレッジベースの一覧を取得します。
-
-```python
-async def list_pipeline_knowledge_bases(self) -> list[dict[str, Any]]:
-    """List knowledge bases configured for the current pipeline"""
-
-# 使用例
-knowledge_bases = await event_context.list_pipeline_knowledge_bases()
-
-# 返り値の例
-[
-    {
-        "uuid": "kb_uuid",
-        "name": "Product Docs",
-        "description": "社内製品ドキュメント",
-    }
-]
-```
-
-現在のリクエストに対応するパイプラインの `Local Agent` 設定にバインドされたナレッジベースのみを返します。現在のパイプラインにナレッジベースが設定されていない場合、または `Local Agent` を使用していない場合は、空のリストが返されます。
+モデル、ツール、ナレッジベース、ストレージには `self.plugin` を使用します。現在のイベント、返信、会話の状態については[コンテキスト API](/ja/plugin/dev/apis/agent-run) を参照してください。
 
 ## LangBot API
 
-これらのAPIは、任意のプラグインコンポーネントで呼び出すことができます。アクセス方法:
+これらのAPIは、通常のプラグインコンポーネントで呼び出すことができます。アクセス方法:
 
 - プラグインルートディレクトリの`main.py`内: `self`オブジェクトの内部メソッド。これらのAPIはすべて、プラグインクラスの親クラス`BasePlugin`によって提供されます。
-- 任意のプラグインコンポーネントクラス内: `self.plugin`オブジェクトの内部メソッド。
+- 通常のプラグインコンポーネントクラス内: `self.plugin`オブジェクトの内部メソッド。
 
 ### プラグイン設定の取得
 
@@ -224,6 +123,7 @@ async def invoke_llm(
     messages: list[provider_message.Message],
     funcs: list[resource_tool.LLMTool] = [],
     extra_args: dict[str, Any] = {},
+    timeout: float | None = None,
 ) -> provider_message.Message:
     """LLMモデルを呼び出す"""
 
@@ -235,6 +135,45 @@ llm_message = await self.plugin.invoke_llm(
     extra_args={},
 )
 ```
+
+
+### モデルのストリーミングと使用量
+
+| メソッド | 戻り値 |
+| --- | --- |
+| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={})` | `MessageChunk` の非同期イテレーター |
+| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={})` | `LLMStreamEvent` の非同期イテレーター |
+
+
+引数は `invoke_llm` と同じです。`timeout` は秒数で、非ストリーミング呼び出しの既定値は 120 秒です。トークン使用量が必要な場合は `invoke_llm_with_usage` を使用します：
+
+```python
+from langbot_plugin.api.entities.builtin.provider.message import Message
+
+result = await self.plugin.invoke_llm_with_usage(
+    llm_model_uuid=model_uuid,
+    messages=[Message(role="user", content="Hello!")],
+)
+print(result.message.content)
+if result.usage is not None:
+    print(result.usage.total_tokens)
+```
+
+`usage` は `None` の場合があり、`prompt_tokens`、`completion_tokens`、`total_tokens` も欠ける場合があります。未取得は使用量ゼロを意味しません。キャッシュなどの追加フィールドは保持されます。
+
+```python
+async for event in self.plugin.invoke_llm_stream_events(
+    llm_model_uuid=model_uuid,
+    messages=[Message(role="user", content="Hello!")],
+):
+    if event.chunk is not None:
+        print(event.chunk.content)
+    if event.usage is not None:
+        print(event.usage.model_dump())
+```
+
+`LLMStreamEvent` は任意の `chunk` と `usage` を持ち、最後が使用量のみの場合もあります。`invoke_llm_stream` はメッセージ・ツール呼び出しのチャンクのみ返します。`MessageChunk.content` は現在の断片、`all_content` は提供される場合に累積テキストです。累積テキストは置換し、差分だけ追加します。`is_final` のチャンクにもテキストが含まれる場合があります。モデルのストリーミングはプラットフォームに送信しません。送信方法は[実行コンテキスト API](/ja/plugin/dev/apis/agent-run)を参照してください。
 
 ### 利用可能な Parser の一覧取得
 
@@ -428,7 +367,7 @@ file_bytes = await self.plugin.get_config_file("key")
 
 ## ナレッジベース API
 
-これらのAPIは任意のコンポーネントから`self.plugin`経由でアクセスでき、パイプライン制限なしにLangBotインスタンス内のすべてのナレッジベースの一覧取得と検索が可能です。
+これらのAPIは通常のコンポーネントから`self.plugin`経由でアクセスでき、パイプライン制限なしにLangBotインスタンス内のすべてのナレッジベースの一覧取得と検索が可能です。
 
 ### すべてのナレッジベースの一覧取得
 
@@ -486,7 +425,7 @@ for entry in results:
 ```
 
 <Tip>
-これらのAPIは`query_id`を必要とせず、任意のコンポーネント（Toolコンポーネントを含む）で使用できます。現在のパイプライン設定に制限されることなく、すべてのナレッジベースにアクセスできます。
+これらのAPIは`query_id`を必要とせず、通常のコンポーネント（Toolコンポーネントを含む）で使用できます。現在のパイプライン設定に制限されることなく、すべてのナレッジベースにアクセスできます。
 </Tip>
 
 ## RAG API
@@ -676,3 +615,81 @@ async def get_knowledge_file_stream(self, storage_path: str) -> bytes:
 # 使用例
 file_bytes = await self.plugin.get_knowledge_file_stream(context.file_object.storage_path)
 ```
+
+
+## その他のリソース API
+
+以下も `self.plugin` から呼び出します。
+
+### リランクモデルの呼び出し
+
+```python
+async def invoke_rerank(
+    self, rerank_model_uuid: str, query: str, documents: list[str],
+    top_k: int | None = None, extra_args: dict[str, Any] | None = None,
+    timeout: float = 60.0,
+) -> list[dict[str, Any]]:
+    ...
+
+scores = await self.plugin.invoke_rerank(
+    rerank_model_uuid=rerank_model_uuid,
+    query="How do I configure a bot?",
+    documents=["Bot configuration guide", "Plugin publishing guide"],
+    top_k=1,
+)
+```
+
+結果には通常、元の文書の `index` と関連度 `relevance_score` が含まれます。
+
+### パーサーの呼び出し
+
+```python
+async def invoke_parser(
+    self, plugin_author: str, plugin_name: str, storage_path: str,
+    mime_type: str, filename: str, metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    ...
+
+parsers = await self.plugin.list_parsers(mime_type="application/pdf")
+if parsers:
+    parser = parsers[0]
+    parsed = await self.plugin.invoke_parser(
+        plugin_author=parser["plugin_author"],
+        plugin_name=parser["plugin_name"],
+        storage_path=storage_path,
+        mime_type="application/pdf",
+        filename="guide.pdf",
+    )
+```
+
+`storage_path` はナレッジ取り込み時の `context.file_object.storage_path` など、ホストの保存先です。プラグインのローカルパスではありません。結果の辞書には `text`、`sections`、`metadata` が含まれます。
+
+### ベクトルレコード一覧
+
+```python
+async def vector_list(
+    self, collection_id: str, filters: dict[str, Any] | None = None,
+    limit: int = 20, offset: int = 0,
+) -> dict[str, Any]:
+    ...
+
+page = await self.plugin.vector_list(
+    collection_id=collection_id,
+    filters={"file_id": "doc_001"},
+    limit=20,
+    offset=0,
+)
+for item in page["items"]:
+    print(item["id"], item.get("metadata"))
+```
+
+`items` と `total` を返します。各項目は `id`、`document`、`metadata` を含み、`total` はストレージが取得可能な一致件数です。フィルターは上記のベクトル API と同じ形式です。
+
+### プラグインとコマンド一覧
+
+```python
+manifests = await self.plugin.list_plugins_manifest()
+commands = await self.plugin.list_commands()
+```
+
+いずれも引数なしで、ホストが提供するプラグインのマニフェスト一覧とコマンド一覧を返します。
