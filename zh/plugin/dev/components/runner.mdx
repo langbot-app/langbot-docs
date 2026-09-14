@@ -186,12 +186,14 @@ async with ctx.reply_stream() as reply:
 
 调试中的平台回复使用 Mock，不发送真实消息。修改组件 YAML 后，请重启 `lbp run`。
 
-安装插件后，在机器人中将「成员加入群组」和「收到消息」绑定到该处理器，即可处理实际事件。
+安装插件后，在机器人详情页的「插件处理器」中添加该配置并保存。也可以直接在这里选择组件、填写配置，创建并绑定新配置。机器人会自动投递组件声明的事件，无需逐条配置事件路由。
+
+插件处理器与 Agent／流水线路由独立执行，同一事件可以触发多个插件处理器，某个处理器失败不会阻止其他处理。使用同一配置的机器人会共享设置和运行状态；需要分别设置时，创建不同的配置。可选功能应通过组件配置提供，例如是否回复消息，避免与其他处理器重复回复。
 
 ## 接下来做什么
 
 - 查看 [`RunnerContext` 上下文 API](/zh/plugin/dev/apis/agent-run#runner)。
 - 查看模型、工具、知识库和存储相关的 [LangBot API](/zh/plugin/dev/apis/common)。
 - 查看消息发送等[平台 API](/zh/plugin/dev/apis/platform)。
-- 查看 [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo) 中的更多示例。
+- 查看 [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/Runner/RunnerDemo) 中的更多示例。
 - 如果要扩展流水线的预处理、模型调用完成等步骤，请使用[事件监听器](/zh/plugin/dev/components/event-listener)。

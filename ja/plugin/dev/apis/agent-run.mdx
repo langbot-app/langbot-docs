@@ -159,7 +159,7 @@ event_type = ctx.event.event_type
 | `context` | `ContextAccess` | 会話カーソル、インライン方針、利用可能なコンテキスト API |
 | `state` | `AgentRunState` | 実行開始時に読み込まれたスコープ別状態のスナップショット |
 | `runtime` | `AgentRuntimeContext` | LangBot バージョン、トレース ID、期限 |
-| `config` | `dict[str, Any]` | 現在の Agent またはプラグイン処理インスタンスの設定 |
+| `config` | `dict[str, Any]` | 現在の Agent またはプラグインプロセッサーの設定 |
 | `adapter` | `AdapterContext \| None` | エントリーアダプターの追加データ |
 | `metadata` | `dict[str, Any]` | ホストが提供するその他のメタデータ |
 
@@ -183,7 +183,7 @@ event_type = ctx.event.event_type
 | `await ctx.get_available_tools()` | `list[dict[str, Any]]` | 今回呼び出せるコンテキスト操作、プラットフォーム API、プラグインツール、MCP ツールを取得 |
 | `await ctx.call_tool(tool_name, parameters=None)` | `dict[str, Any]` | 上記一覧のツールを呼び出す |
 
-`get_available_tools()` の各項目には `name`、`description`、`parameters`、`type`、`operations` が含まれます。結果は現在の Agent またはプラグイン処理インスタンスの設定とイベント機能で絞り込まれています。一覧にないツールは `ctx.call_tool()` で呼び出せません。
+`get_available_tools()` の各項目には `name`、`description`、`parameters`、`type`、`operations` が含まれます。結果は現在の Agent またはプラグインプロセッサーの設定とイベント機能で絞り込まれています。一覧にないツールは `ctx.call_tool()` で呼び出せません。
 
 ### プロンプト、履歴、イベント
 

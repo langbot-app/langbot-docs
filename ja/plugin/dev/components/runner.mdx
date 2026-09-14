@@ -186,12 +186,14 @@ async with ctx.reply_stream() as reply:
 
 デバッグ中の返信は Mock で再現され、実際のメッセージは送信されません。コンポーネントの YAML を変更したら `lbp run` を再起動してください。
 
-インストール後、Bot のメンバー参加とメッセージ受信をこのプロセッサーに紐付けると、実際のイベントを処理できます。
+インストール後、ボット詳細の「プラグインプロセッサー」でこの設定を追加して保存します。この画面でコンポーネントを選択し、設定を入力して新規作成・紐付けすることもできます。宣言されたイベントは自動で配信され、イベントごとのルート設定は不要です。
+
+プラグインの購読は Agent／パイプラインのルートと独立して実行されます。同じイベントを複数のプロセッサーが処理でき、一つが失敗しても他の実行を妨げません。同じ設定を使用するボットは設定内容と実行状態を共有します。個別に設定する場合は、新しい設定を作成してください。返信などの任意の動作はコンポーネントの設定として提供し、重複返信を避けてください。
 
 ## 次のステップ
 
 - [`RunnerContext` API リファレンス](/ja/plugin/dev/apis/agent-run#runner)を確認します。
 - モデル、ツール、ナレッジベース、ストレージについては [LangBot API](/ja/plugin/dev/apis/common)を確認します。
 - メッセージ送信などについては[プラットフォーム API](/ja/plugin/dev/apis/platform)を確認します。
-- [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/RunnerDemo)で他の実装例を確認できます。
+- [RunnerDemo](https://github.com/langbot-app/langbot-plugin-demo/tree/main/Runner/RunnerDemo)で他の実装例を確認できます。
 - パイプラインの前処理やモデル呼び出し完了時などに機能を追加する場合は、[イベントリスナー](/ja/plugin/dev/components/event-listener)を使用してください。
