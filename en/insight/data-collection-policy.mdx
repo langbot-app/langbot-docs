@@ -1,104 +1,87 @@
 ---
 title: "Data Collection Policy"
-description: "What data LangBot collects and how it is used"
+description: "Existing telemetry, Beta diagnostics, retention and opt-out controls"
 ---
 
-LangBot collects minimal, anonymized telemetry data to help improve the product. This document explains what data is collected, how it is used, and how you can opt out.
+LangBot sends telemetry to the configured LangBot Space service (by default `https://space.langbot.app`) to understand usage and improve reliability. **Existing product telemetry and Beta diagnostics are separate data streams.** This page describes Core 4.11.0-beta.2 diagnostics schema v1; it does not change existing product analytics settings.
 
-## What We Collect
+## Existing product telemetry
 
-When telemetry is enabled (via LangBot Space integration), the following data is sent **per conversation query**:
+When enabled, the existing query path can send:
 
-| Field | Description |
+| Data | Contents |
 |---|---|
-| `query_id` | A randomly generated unique ID for the query (not linked to user identity) |
-| `adapter` | The messaging platform adapter in use (e.g., WeChat, QQ, Telegram) — only the adapter type name, not your account info |
-| `runner` | The AI runner type (e.g., `local-agent`, `dify-service-api`) |
-| `model_name` | The model name used for the query (e.g., `gpt-4o`, `deepseek-chat`) |
-| `duration_ms` | How long the query took to process (in milliseconds) |
-| `version` | The LangBot version you are running |
-| `workspace_uuid` | A stable UUID identifying the Workspace where the query ran. For the default self-hosted Workspace it is aligned with the installation UUID and is not linked to personal identity. |
-| `runtime_instance_id` | For managed SaaS query events only, the runtime deployment identifier used to refresh idle-timeout activity. It is not stored in the analytics event record. |
-| `pipeline_plugins` | Names of pipeline plugins involved in the query |
-| `features` | Anonymous feature-usage counters for the query (see below) |
-| `error` | Error traceback if the query failed (no user content included) |
-| `timestamp` | When the query occurred (UTC) |
+| Identity and environment | `instance_id`, `workspace_uuid`, random `query_id`, version, adapter and runner types |
+| Query statistics | Model name, duration, timestamp, pipeline plugin names |
+| Feature usage | Tool counts by source, tool-call rounds, knowledge-base and retrieved-entry counts, knowledge-engine plugin IDs, sandbox execution/error counts, activated skill names and configured MCP server names |
+| Errors | The legacy `error` field can contain a raw traceback, including exception text |
+| Managed runtime activity | `runtime_instance_id` on managed SaaS queries refreshes idle-timeout activity; it is not stored in the analytics event record |
 
-#### The `features` object
+Feature counters do not intentionally include tool arguments/results, retrieved text or sandbox code/output. **However, legacy exception text and user-defined model, skill or MCP names may contain sensitive information. The new content-free diagnostics rules do not sanitize this legacy stream.** Do not treat existing telemetry as guaranteed content-free.
 
-To understand which capabilities are actually used, each query event may include the following counters and category names — **never the content** of tool calls, retrieved documents, or executed code:
+A Workspace heartbeat is sent shortly after startup and daily for active Workspaces. It includes deployment platform, database/vector-database kinds, sandbox configuration and availability, enabled adapter types and resource counts, rather than resource contents or connection details.
 
-| Key | Description |
-|---|---|
-| `tool_calls` | Number of tool invocations during the query, grouped by tool source (`native` / `plugin` / `mcp` / `skill`) |
-| `tool_call_rounds` | How many agent tool-call rounds the query took |
-| `kb` | Knowledge base usage: number of knowledge bases queried, knowledge engine plugin IDs in use, and the number of retrieved entries — not the retrieved text |
-| `sandbox` | Number of sandbox code executions and sandbox errors — not the executed code or its output |
-| `activated_skills` | Names of skills activated during the query |
-| `mcp_servers` | Names of MCP servers bound to the pipeline (omitted when "all enabled" is used) |
+Optional in-app surveys send the survey ID, submitted answers, instance ID, version and completion/dismissal status. Survey answers are user-provided content, not Beta diagnostics.
 
-### Workspace heartbeat
+## Beta diagnostics v1 — 4.11.0-beta.2
 
-In addition to per-query events, LangBot sends one anonymous **Workspace heartbeat** for each active Workspace shortly after startup and then once per day. It describes that Workspace's configuration profile — never its data:
+Beta diagnostics are **on by default in Beta builds only**. Stable, alpha and release-candidate builds do not enable this producer; this release has no stable opt-in. There is no additional setup, consent wizard or required testing step. Collection runs in the background with bounded queues, batches, timeouts and retries; unavailable diagnostics services must not hold up normal bot use. Queue limits and network failures can cause diagnostic records to be lost.
 
-| Field | Description |
-|---|---|
-| `deploy_platform` | How LangBot is deployed (`docker`, `linux`, `darwin`, `win32`, ...) |
-| `database` | Database kind in use (`sqlite` or `postgresql`) — no connection details |
-| `vdb` | Vector database kind in use (e.g., `chroma`, `milvus`, `qdrant`) — no connection details |
-| `box` | Sandbox configuration: enabled flag, availability, backend kind (`docker` / `nsjail` / `e2b`), deployment topology — no workspace contents |
-| `adapters` | Adapter type names of enabled bots |
-| `bot_count`, `pipeline_count`, `mcp_server_count`, `knowledge_base_count`, `plugin_count`, `skill_count` | Object counts only — no names or contents of these resources |
+Diagnostics record only allowlisted, content-free metadata from instrumented operations:
 
-### Surveys
+- Core/SDK/public plugin or runner versions, build revision, deployment/environment categories and supported/configured capabilities.
+- Operation and event categories, processor type, execution stage, observed outcome, counts and duration.
+- Fixed reason codes, error categories and fingerprints built from code identifiers, **not exception messages or raw tracebacks**.
+- Independent `instance_id` and optional `workspace_uuid`, plus opaque event/trace/span/run identifiers to correlate diagnostic steps. Instance-level events may have no Workspace.
+- Sender health counters such as generated, acknowledged, retried and dropped records.
 
-LangBot may occasionally present in-app surveys (e.g., product-market fit surveys). Participation is **optional**. When a survey is submitted, the following is sent:
+**These are pseudonymous identifiers, not anonymous data.** An instance and a Workspace are distinct identity dimensions; neither is a substitute for the other. Identifiers may be associated with an account or deployment. “Unauthenticated reporter” does not mean unidentifiable.
 
-- Survey ID and your answers
-- Your instance ID and LangBot version
-- Whether you completed or dismissed the survey
+### Excluded from Beta diagnostic records
 
-## What We Do NOT Collect
+No messages, prompts, model replies, raw platform events, tool/API arguments or results, form values, file/media contents, filenames or local paths, raw URLs/query strings, credentials, platform user/group IDs, user-defined resource names, or raw exceptions/tracebacks. Public component IDs and fixed operation categories are used instead of arbitrary text. Network infrastructure necessarily sees a sender's IP address for delivery and abuse prevention; this is not a promise that all service access logs are IP-free.
 
-- ❌ **Message content** — We never collect the content of your conversations
-- ❌ **User identities** — No usernames, emails, phone numbers, or account IDs from your messaging platforms
-- ❌ **API keys or credentials** — Your model provider API keys are never transmitted
-- ❌ **IP addresses** — We do not log or store your IP address for analytics purposes
-- ❌ **File or media content** — No images, documents, or other media you exchange with the bot
+Diagnostics help find compatibility failures and regressions in observed paths. They are separate from query usage, retention/funnel statistics, account bindings and managed runtime idle-timeout activity. A platform API accepting a request does **not** prove a user received or read a message. Missing records or an untested path do not demonstrate success.
 
-## How We Use the Data
+## Storage and retention
 
-The collected telemetry data is used to:
+Data sent to the default service is stored on servers operated for LangBot Space. Beta diagnostics can be read by administrators, members explicitly authorized for telemetry access, and authorized service API clients. Ordinary Workspace membership does not itself grant this access. **Server default cleanup thresholds are 30 days for diagnostic detail and 90 days for aggregates**, with configuration bounded by those limits. Records become eligible for deletion at these thresholds; a scheduled worker removes them in bounded batches. Backlogs or service interruptions can delay removal, so these are not guarantees of deletion at an exact hour. These periods apply to the new diagnostic stream, not retroactively to existing product telemetry, surveys, service logs or account records. Existing telemetry continues under its existing product-analytics retention settings.
 
-1. **Understand usage patterns** — Which adapters, runners, and models are most popular
-2. **Improve reliability** — Identify common errors and failure modes
-3. **Guide development** — Prioritize features and platform support based on real usage
-4. **Monitor performance** — Track response times and identify bottlenecks
+Opting out stops future diagnostic sends and clears local pending diagnostic records once the setting takes effect. It does **not** delete records already received by the server. For historical deletion, contact [hello@langbot.app](mailto:hello@langbot.app) or your Space administrator; active administrators and authorized service API clients can delete diagnostics scoped to an instance and, where applicable, a Workspace. Telemetry read permission alone does not permit deletion or error-status changes. Share identifiers privately, not in a public issue.
 
-## Data Storage & Retention
+## Opt-out controls
 
-- Telemetry data is sent to **LangBot Space** (`space.langbot.app`)
-- Data is stored on servers operated by the LangBot team
-- Data is retained for product analytics purposes and may be aggregated for public statistics (e.g., total user count)
-
-## How to Opt Out
-
-You can disable telemetry at any time by setting `disable_telemetry: true` in the `space` section of your `data/config.yaml` configuration file:
+To disable only Beta diagnostics, update the existing `space` section in `data/config.yaml`, preserving your other settings, then restart LangBot:
 
 ```yaml
 space:
-  url: "https://space.langbot.app"
+  disable_beta_diagnostics: true
+```
+
+This does not change query telemetry, heartbeat, survey or other product analytics settings.
+
+To disable Core telemetry, including Beta diagnostics, use the master switch and restart:
+
+```yaml
+space:
   disable_telemetry: true
 ```
 
-When telemetry is disabled:
-- No query data will be sent
-- No Workspace heartbeats will be sent
-- No surveys will be fetched or displayed
-- All other LangBot features continue to work normally
+The master switch takes precedence over the Beta setting. It also disables the existing query/heartbeat sends and survey fetching. Use YAML booleans (`true`/`false`), not quoted strings. If your deployment sets `SPACE__DISABLE_BETA_DIAGNOSTICS` or `SPACE__DISABLE_TELEMETRY`, those environment values override the file at startup; update or remove them too, then restart the process (recreate a container when changing its environment). Diagnostics also require a configured `space.url`; local-version builds such as `4.11.0b2+local` do not enable the producer. These controls do not disable the bot or alter the privacy settings of your messaging platforms, plugins, model providers or other online services.
 
-## Changes to This Policy
+## Optional Beta test checklist — 4.11.0-beta.2 / v1
 
-We may update this policy as LangBot evolves. Changes will be documented in our release notes and reflected in this page.
+Use a test bot, test Workspace and non-sensitive sample data. Only test capabilities your installed adapter and plugins support. This checklist is optional; diagnostics do not automatically run these actions.
 
-*Last updated: July 2026*
+| Scenario ID | What to check |
+|---|---|
+| `B2-01` | Start/restart the installation; check platform and Runtime connections and one normal reply. |
+| `B2-02` | Trigger a matching and non-matching route; where configured, test Pipeline, Agent and plugin event processors separately. |
+| `B2-03` | Exercise a configured tool/plugin/MCP call and a reply; check the actual destination and content yourself. |
+| `B2-04` | In a safe test environment, cancel a run or reproduce a known failure; confirm the bot remains usable. |
+| `B2-05` | If supported, test streaming and an interaction callback; check partial replies, timeout and resume behavior. |
+| `B2-06` | If checking diagnostics controls, disable diagnostics, restart and confirm normal bot use. A maintainer can separately verify no new diagnostic requests and that pending records are cleared. |
+
+Do not kick, mute, delete or otherwise modify production users/data just to create diagnostic samples. Report the scenario ID, exact Core/SDK versions, platform, approximate UTC time, expected versus actual behavior and whether it was a real platform or WebUI debug test. Remove secrets and personal data from any manually submitted logs/screenshots. After a fix, repeat the same scenario on the new build. Diagnostic coverage supplements these checks; it does not replace them.
+
+*Policy version: 1.5 · Last updated: September 15, 2026*
