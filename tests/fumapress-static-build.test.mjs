@@ -467,3 +467,29 @@ test("static search stays within Cloudflare Pages' 25 MiB file limit", async () 
   const search = await stat(path.join(publicRoot, "api/search"));
   assert.ok(search.size <= 25 * 1024 * 1024, `search artifact is ${search.size} bytes`);
 });
+
+
+test("beta deployment instructions render in all six localized deployment pages", async () => {
+  const composeUrl = "https://raw.githubusercontent.com/langbot-app/LangBot/dev/4.11.x/docker/docker-compose.yaml";
+  for (const locale of ["en", "zh", "ja"]) {
+    for (const page of ["docker", "package"]) {
+      const html = await readFile(path.join(publicRoot, locale, "deploy/langbot", page, "index.html"), "utf8");
+      const article = html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/)?.[1];
+      assert.ok(article, `${locale}/${page} has a rendered article`);
+      const text = article.replace(/<[^>]+>/g, "");
+      const commands = [...article.matchAll(/<pre\b[^>]*>([\s\S]*?)<\/pre>/g)]
+        .map((match) => match[1].replace(/<[^>]+>/g, ""));
+      if (page === "docker") {
+        assert.ok(article.includes(`href="${composeUrl}"`));
+        for (const literal of ["compose.yaml", "rockchin/langbot:beta", "langbot", "langbot_plugin_runtime", "langbot_box"]) {
+          assert.ok(article.includes(`<code>${literal}</code>`), `${locale}/${page}: ${literal}`);
+        }
+        assert.ok(commands.includes("docker compose --profile all pull\ndocker compose --profile all up -d"));
+      } else {
+        assert.ok(commands.includes("uvx langbot@latest"));
+        assert.ok(commands.includes("uvx --prerelease=allow --refresh langbot==4.11.0b3"));
+      }
+      assert.ok(text.includes("Beta"), `${locale}/${page} keeps the opt-in heading`);
+    }
+  }
+});

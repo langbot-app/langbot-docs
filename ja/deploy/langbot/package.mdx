@@ -15,6 +15,14 @@ uvx langbot@latest
 
 これにより現在のディレクトリが作業ディレクトリとして設定され、`http://localhost:5300`にアクセスして使用を開始できます。
 
+## Beta 版（任意）
+
+Beta 3 を試す場合は、代わりに次のコマンドを使います。`--prerelease=allow` は依存パッケージのプレリリースも許可し、`--refresh` はキャッシュされたパッケージ情報を更新します。
+
+```bash
+uvx --prerelease=allow --refresh langbot==4.11.0b3
+```
+
 ## オプションの SeekDB サポート
 
 デフォルトのインストールでは Chroma を使用し、SeekDB の Python SDK とネイティブコンポーネントは含まれません。SeekDB をベクトルストアとして使用する場合、または組み込み埋め込みモデルを使用する場合だけ `seekdb` extra を指定します：
