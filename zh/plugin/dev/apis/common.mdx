@@ -693,3 +693,17 @@ commands = await self.plugin.list_commands()
 ```
 
 两个方法均不需要参数，分别返回宿主提供的插件清单列表和命令列表。
+
+### Box 沙箱
+
+这些方法通过 `self.plugin` 调用，作用于当前工作区。在运行器内调用时会自动携带本次运行的授权。
+
+| 方法 | 返回值 | 说明 |
+| --- | --- | --- |
+| `await self.plugin.get_box_status()` | `BoxStatus` | `enabled`、`available`、数量上限 `limit`、已用 `used`、剩余 `remaining`、托管环境要求的 `required_reuse_key` 和不可用原因 `reason` |
+| `await self.plugin.list_boxes()` | `list[BoxSession]` | 可用 Box 的 `id` 和状态快照 `status`（`idle`、`running`、`closing`） |
+| `await self.plugin.acquire_box(reuse_key, options=None)` | `BoxSession` | 同一键复用已有 Box，否则在数量限制内创建；`options` 支持 `image` |
+
+数量未知时对应字段为 `None`。`remaining=0` 仍可以复用已有 Box；创建时由 Runtime 原子检查额度。运行器自行计算复用键，Host 不解释聊天模板；托管环境给出 `required_reuse_key` 时须使用该值。不同工作区的相同键不会共用 Box。
+
+获取 Box 后，通过[运行器上下文](/zh/plugin/dev/apis/agent-run#runner)绑定到本次运行，再导入附件和执行工具。

@@ -693,3 +693,17 @@ commands = await self.plugin.list_commands()
 ```
 
 いずれも引数なしで、ホストが提供するプラグインのマニフェスト一覧とコマンド一覧を返します。
+
+### Box サンドボックス
+
+`self.plugin` から現在のワークスペースに対して呼び出します。Runner 内では実行権限が自動的に引き継がれます。
+
+| メソッド | 戻り値 | 説明 |
+| --- | --- | --- |
+| `await self.plugin.get_box_status()` | `BoxStatus` | `enabled`、`available`、上限 `limit`、使用数 `used`、残数 `remaining`、任意の `required_reuse_key`、利用不可理由 `reason` |
+| `await self.plugin.list_boxes()` | `list[BoxSession]` | `id` と状態 `status`（`idle`、`running`、`closing`）のスナップショット |
+| `await self.plugin.acquire_box(reuse_key, options=None)` | `BoxSession` | 同一キーで再利用、または上限内で作成。`options` は `image` をサポート |
+
+不明な数量は `None` です。残数がゼロでも既存 Box の再利用は可能です。新規作成時の上限は Runtime が原子的に確認します。キーは Runner が計算しますが、`required_reuse_key` が返された場合はその値を使います。異なるワークスペース間では同じキーでも共有されません。
+
+取得後は[Runner コンテキスト](/ja/plugin/dev/apis/agent-run#runner)でバインドしてから、添付のインポートやツール実行を行います。

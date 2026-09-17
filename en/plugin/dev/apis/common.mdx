@@ -693,3 +693,17 @@ commands = await self.plugin.list_commands()
 ```
 
 Both methods take no arguments and return the Host-provided plugin manifest list and command list respectively.
+
+### Box sandbox
+
+These methods use `self.plugin` and the current Workspace. Runner calls automatically retain invocation authorization.
+
+| Method | Returns | Behavior |
+| --- | --- | --- |
+| `await self.plugin.get_box_status()` | `BoxStatus` | `enabled`, `available`, capacity `limit`, `used`, `remaining`, optional managed `required_reuse_key`, and unavailable `reason` |
+| `await self.plugin.list_boxes()` | `list[BoxSession]` | Box `id` and `status` snapshot (`idle`, `running`, `closing`) |
+| `await self.plugin.acquire_box(reuse_key, options=None)` | `BoxSession` | Reuse the same key or create within capacity; `options` supports `image` |
+
+Unknown capacity fields are `None`. Zero remaining capacity still permits reuse; Runtime checks creation capacity atomically. The Runner computes reuse keys. When `required_reuse_key` is supplied, use it. Equal keys in different Workspaces never share a Box.
+
+Use the [Runner context](/en/plugin/dev/apis/agent-run#runner) to bind the Box before importing attachments or executing tools.

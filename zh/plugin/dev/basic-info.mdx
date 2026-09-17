@@ -159,6 +159,7 @@ spec:
 ```yaml
 - name: mode
   type: select
+  allow_custom: true
   options:  # 下拉框选项，支持多语言。
     - name: mode1  # 值，在下拉框中以小字显示。
       label:  # 显示名称，支持多语言。
@@ -170,6 +171,8 @@ spec:
         zh_Hans: 模式 2
   ...
 ```
+
+设置 `allow_custom: true` 可在预设之外提供“自定义”选项，仅选择该项时显示输入框。最终保存的是所选 `name` 或自定义字符串，不会保存“自定义”标记。此选项也适用于运行器的 `spec.config`。
 
 ### type: prompt-editor
 

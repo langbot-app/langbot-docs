@@ -161,6 +161,7 @@ event_type = ctx.event.event_type
 | `runtime` | `AgentRuntimeContext` | LangBot バージョン、トレース ID、期限 |
 | `config` | `dict[str, Any]` | 現在の Agent またはプラグインプロセッサーの設定 |
 | `adapter` | `AdapterContext \| None` | エントリーアダプターの追加データ |
+| `variables` | `dict[str, Any]` | Runner テンプレートで使える公開リクエスト変数 |
 | `metadata` | `dict[str, Any]` | ホストが提供するその他のメタデータ |
 
 上表の安定したプロパティを優先してください。`event.data` と `adapter.extra` には、安定したフィールドに含まれない追加データが入ります。
@@ -184,6 +185,25 @@ event_type = ctx.event.event_type
 | `await ctx.call_tool(tool_name, parameters=None)` | `dict[str, Any]` | 上記一覧のツールを呼び出す |
 
 `get_available_tools()` の各項目には `name`、`description`、`parameters`、`type`、`operations` が含まれます。結果は現在の Agent またはプラグインプロセッサーの設定とイベント機能で絞り込まれています。一覧にないツールは `ctx.call_tool()` で呼び出せません。
+
+### Box と添付ファイル
+
+Box の有効化、取得、再利用方針は Runner が決めます。リソースの取得には [LangBot API](/ja/plugin/dev/apis/common#box-サンドボックス)、実行中の操作には以下を使います。
+
+| メソッド | 戻り値 | 説明 |
+| --- | --- | --- |
+| `await ctx.bind_box(box_id)` | `BoxBinding` | Box を現在の実行にバインドし、`box_id`、`outbox` を返す。同じ実行内では変更不可 |
+| `await ctx.import_box_attachments(attachment_ids=None)` | `list[BoxFile]` | 入力の `ref` を指定してインポート。省略時は全件。サンドボックスの `path` を返す |
+| `await ctx.export_box_files()` | `list[BoxFile]` | 現在の実行の outbox をファイルハンドルとしてエクスポート。メッセージは送信しない |
+| `await ctx.reply_files(file_ids)` | `Any` | エクスポートした ID で返信。返信ツールの権限制限が適用される |
+
+`BoxFile` は `id`、`name`、`type`、`size`、任意の `path` を含みます。入力の元 URL と内容は保持され、明示的にインポートして初めてファイルパスが生成されます。ハンドルは今回の実行でのみ有効で、重複送信できません。
+
+ネイティブツールやファイル操作の前に Box をバインドします。Box を共有しても添付ディレクトリは実行ごとに分かれます。`ctx.variables` の公開リクエスト変数で再利用キーを計算できます。
+
+Pipeline では `ctx.delivery.automatic_reply` が `True` になり、`RunnerResult.message_completed(ctx.run_id, message, file_ids=[...])` で添付を返せます。Agent とプラグインプロセッサーは `ctx.reply_files()` で明示的に送信します。
+
+外部ランナーも `AgentRunExternalTools` で同じ手順を使用できます：`langbot_get_box_status`、`langbot_list_boxes`、`langbot_acquire_box`、`langbot_bind_box`、`langbot_import_box_attachments`、`langbot_export_box_files`。イベントへの返信権限がある場合は `langbot_reply_files` も利用できます。すべての呼び出しに現在の実行の権限が適用されます。
 
 ### プロンプト、履歴、イベント
 
