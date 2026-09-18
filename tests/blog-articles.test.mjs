@@ -12,6 +12,15 @@ const localeConfig = {
   zh: { language: "cn", tab: "文章" },
   ja: { language: "jp", tab: "記事" },
 };
+const extraArticlePages = {
+  en: [],
+  zh: [
+    "zh/articles/langbot-telegram-sandbox-agent",
+    "zh/articles/langbot-wechat-official-account",
+    "zh/articles/langbot-wecom-customer-service-knowledge-base",
+  ],
+  ja: [],
+};
 
 test("all canonical Blog slugs are published in every Wiki locale", () => {
   const slugsByLocale = new Map();
@@ -31,9 +40,11 @@ test("article tabs group every generated Blog page exactly once", () => {
     assert.equal(matchingTabs.length, 1, `${locale} must have exactly one ${config.tab} tab`);
     const tab = matchingTabs[0];
     const pages = tab.groups.flatMap((group) => group.pages).filter((page) => page !== `${locale}/articles/index`);
-    const expected = manifest.articles.filter((article) => article.locale === locale).map((article) => article.page);
-    const expectedSet = new Set(expected);
-    assert.deepEqual([...pages.filter((page) => expectedSet.has(page))].sort(), [...expected].sort());
+    const expected = manifest.articles
+      .filter((article) => article.locale === locale)
+      .map((article) => article.page)
+      .concat(extraArticlePages[locale]);
+    assert.deepEqual([...pages].sort(), [...expected].sort());
     assert.equal(new Set(pages).size, pages.length, `${locale} has duplicate article navigation entries`);
   }
 });
