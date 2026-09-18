@@ -212,6 +212,9 @@ test("canonical sitemap routes match the legacy Mintlify directory structure", a
 const locales = ["en", "zh", "ja"];
 const hreflangByLocale = { en: "en", zh: "zh-CN", ja: "ja" };
 const zhOnlyRoutes = [
+  "articles/langbot-telegram-sandbox-agent",
+  "articles/langbot-wechat-official-account",
+  "articles/langbot-wecom-customer-service-knowledge-base",
   "develop/adapter/discord/README",
   "develop/adapter/discord/api_reference",
   "develop/adapter/discord/design",
@@ -348,7 +351,7 @@ test("the Chinese quick-start navigation keeps the incumbent troubleshooting pag
   assert.doesNotMatch(sidebar, /href="\/docs\/zh\/develop\/adapter\/discord\/troubleshooting"/);
 });
 
-test("the exact 14 zh-only sources publish no fallback en or ja routes", async () => {
+test("the exact 17 zh-only sources publish no fallback en or ja routes", async () => {
   const documents = await collectMdxDocuments(root);
   const byLocale = Object.fromEntries(locales.map((locale) => [
     locale,
