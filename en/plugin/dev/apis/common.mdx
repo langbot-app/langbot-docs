@@ -124,6 +124,8 @@ async def invoke_llm(
     funcs: list[resource_tool.LLMTool] = [],
     extra_args: dict[str, Any] = {},
     timeout: float | None = None,
+    *,
+    reasoning_level: ReasoningLevel | None = None,
 ) -> provider_message.Message:
     """Invoke an LLM model"""
 
@@ -137,13 +139,33 @@ llm_message = await self.plugin.invoke_llm(
 ```
 
 
+### Reasoning level
+
+All model invocation methods above accept the optional keyword-only `reasoning_level` parameter:
+
+```python
+response = await self.plugin.invoke_llm(
+    llm_model_uuid=model_uuid,
+    messages=[provider_message.Message(role="user", content="Analyze this problem")],
+    reasoning_level="medium",
+)
+```
+
+Values are `provider_default`, `disabled`, `enabled`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`. Available levels depend on the model. LangBot validates support and translates the level into provider parameters; unsupported levels raise an error.
+
+- Omitted or `None`: preserves existing model configuration and `extra_args` behavior.
+- `provider_default`: adds no explicit reasoning level.
+- Other levels: apply to this call only. Do not also supply provider-specific reasoning parameters through `extra_args`.
+
+Runners read their own configuration and explicitly pass the appropriate level for each call, including fallback models and tool follow-ups. LangBot does not extract reasoning levels from Runner configuration. Existing plugins require no changes; when an explicit option is used with an unsupported Host, the SDK requests an upgrade before invoking the model.
+
 ### Model streaming and usage
 
 | Method | Returns |
 | --- | --- |
-| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None)` | `LLMInvokeResult` |
-| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={})` | Async iterator of `MessageChunk` |
-| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={})` | Async iterator of `LLMStreamEvent` |
+| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None, *, reasoning_level=None)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={}, *, reasoning_level=None)` | Async iterator of `MessageChunk` |
+| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={}, *, reasoning_level=None)` | Async iterator of `LLMStreamEvent` |
 
 
 Parameters match `invoke_llm`. `timeout` is in seconds; non-streaming calls default to 120 seconds. Use `invoke_llm_with_usage` when token usage is needed:

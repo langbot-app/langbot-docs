@@ -124,6 +124,8 @@ async def invoke_llm(
     funcs: list[resource_tool.LLMTool] = [],
     extra_args: dict[str, Any] = {},
     timeout: float | None = None,
+    *,
+    reasoning_level: ReasoningLevel | None = None,
 ) -> provider_message.Message:
     """Invoke an LLM model"""
 
@@ -137,13 +139,33 @@ llm_message = await self.plugin.invoke_llm(
 ```
 
 
+### 思考等级
+
+上述模型调用方法都支持可选的关键字参数 `reasoning_level`：
+
+```python
+response = await self.plugin.invoke_llm(
+    llm_model_uuid=model_uuid,
+    messages=[provider_message.Message(role="user", content="分析这个问题")],
+    reasoning_level="medium",
+)
+```
+
+可选值为 `provider_default`、`disabled`、`enabled`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`，具体取决于模型支持的等级。LangBot 校验能力并转换为供应商参数，不支持的等级会报错。
+
+- 不传或传 `None`：保持原有行为，使用模型配置及 `extra_args`。
+- 传 `provider_default`：不额外指定思考等级。
+- 传其他等级：仅作用于本次调用；不要再通过 `extra_args` 重复设置供应商的思考参数。
+
+Runner 应读取自己的配置，在每次模型调用时显式传入对应等级，包括备用模型和工具调用后的续答。LangBot 不会自动读取 Runner 配置中的思考等级。旧插件无需修改；显式使用新参数时，如果 Host 不支持，SDK 会在调用模型前提示升级。
+
 ### 模型流式输出与用量
 
 | 方法 | 返回值 |
 | --- | --- |
-| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None)` | `LLMInvokeResult` |
-| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={})` | 异步迭代 `MessageChunk` |
-| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={})` | 异步迭代 `LLMStreamEvent` |
+| `invoke_llm_with_usage(llm_model_uuid, messages, funcs=[], extra_args={}, timeout=None, *, reasoning_level=None)` | `LLMInvokeResult` |
+| `invoke_llm_stream(llm_model_uuid, messages, funcs=[], extra_args={}, *, reasoning_level=None)` | 异步迭代 `MessageChunk` |
+| `invoke_llm_stream_events(llm_model_uuid, messages, funcs=[], extra_args={}, *, reasoning_level=None)` | 异步迭代 `LLMStreamEvent` |
 
 
 参数与 `invoke_llm` 相同。`timeout` 单位为秒，非流式调用默认 120 秒。需要 token 用量时使用 `invoke_llm_with_usage`：
