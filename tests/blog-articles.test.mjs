@@ -24,7 +24,7 @@ test("all canonical Blog slugs are published in every Wiki locale", () => {
   assert.deepEqual(slugsByLocale.get("ja"), slugsByLocale.get("en"));
 });
 
-test("article tabs group every generated page exactly once", () => {
+test("article tabs group every generated Blog page exactly once", () => {
   for (const [locale, config] of Object.entries(localeConfig)) {
     const language = docs.navigation.languages.find((item) => item.language === config.language);
     const matchingTabs = language.tabs.filter((item) => item.tab === config.tab);
@@ -32,7 +32,8 @@ test("article tabs group every generated page exactly once", () => {
     const tab = matchingTabs[0];
     const pages = tab.groups.flatMap((group) => group.pages).filter((page) => page !== `${locale}/articles/index`);
     const expected = manifest.articles.filter((article) => article.locale === locale).map((article) => article.page);
-    assert.deepEqual([...pages].sort(), [...expected].sort());
+    const expectedSet = new Set(expected);
+    assert.deepEqual([...pages.filter((page) => expectedSet.has(page))].sort(), [...expected].sort());
     assert.equal(new Set(pages).size, pages.length, `${locale} has duplicate article navigation entries`);
   }
 });

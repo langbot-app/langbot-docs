@@ -43,9 +43,9 @@ function staticHtmlForUrlPath(urlPath) {
   return path.join(publicRoot, ...parts, "index.html");
 }
 
-test("all 305 canonical localized documents have static HTML", async () => {
+test("all 308 canonical localized documents have static HTML", async () => {
   const documents = await collectMdxDocuments(root);
-  assert.equal(documents.length, 305);
+  assert.equal(documents.length, 308);
   const missing = [];
   for (const document of documents) {
     try {
