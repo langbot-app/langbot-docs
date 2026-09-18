@@ -46,7 +46,7 @@ test("article tabs group every generated Blog page exactly once", () => {
       [],
       `${locale} extra article pages must not overlap with the synchronized manifest`,
     );
-    const expected = manifestPages.concat(extras);
+    const expected = [...new Set(manifestPages.concat(extras))];
     assert.deepEqual([...pages].sort(), [...expected].sort());
     assert.equal(new Set(pages).size, pages.length, `${locale} has duplicate article navigation entries`);
   }
