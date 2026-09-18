@@ -37,10 +37,16 @@ test("article tabs group every generated Blog page exactly once", () => {
     assert.equal(matchingTabs.length, 1, `${locale} must have exactly one ${config.tab} tab`);
     const tab = matchingTabs[0];
     const pages = tab.groups.flatMap((group) => group.pages).filter((page) => page !== `${locale}/articles/index`);
-    const expected = manifest.articles
+    const manifestPages = manifest.articles
       .filter((article) => article.locale === locale)
-      .map((article) => article.page)
-      .concat(extraArticlePages[locale]);
+      .map((article) => article.page);
+    const extras = extraArticlePages[locale];
+    assert.deepEqual(
+      extras.filter((page) => manifestPages.includes(page)),
+      [],
+      `${locale} extra article pages must not overlap with the synchronized manifest`,
+    );
+    const expected = manifestPages.concat(extras);
     assert.deepEqual([...pages].sort(), [...expected].sort());
     assert.equal(new Set(pages).size, pages.length, `${locale} has duplicate article navigation entries`);
   }
