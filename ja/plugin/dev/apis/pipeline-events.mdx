@@ -248,42 +248,13 @@ class PromptPreProcessing(BaseEventModel):
     """この会話の既存メッセージレコード、変更可能、langbot_plugin.api.entities.builtin.provider.message.Messageまたはlangbot_plugin.api.entities.builtin.provider.message.MessageChunk型"""
 ```
 
-## イベントコンテキストAPI
+## EventListener コンテキスト
 
-```python
-...
-        @self.handler(events.PersonMessageReceived)
-        async def handler(event_context: context.EventContext):
-            ...
-```
+イベントハンドラーは `event_context.event` から現在のイベントを取得します。`EventContext` の完全なプロパティとメソッドは[コンテキスト API](/ja/plugin/dev/apis/agent-run#eventlistener)を参照してください。
 
-イベント処理メソッドには`EventContext`オブジェクトが渡され、イベントコンテキスト情報が含まれます。このオブジェクトには[リクエストAPI](/ja/plugin/dev/apis/common)とイベントコンテキスト固有のAPIの両方があります。以下は、イベントコンテキスト固有のAPIのリストです:
+### デフォルト動作を阻止
 
-### 元のイベント属性の取得
-
-`event_context.event`属性は元のイベントオブジェクトであり、元のイベントの属性を取得できます。型はリッスンされているイベントの型です。
-
-例えば、リッスンされているイベントが`GroupMessageReceived`の場合:
-
-```python
-event = event_context.event
-print(event.launcher_type)  # 起動元オブジェクトタイプ(group)
-print(event.launcher_id)    # グループID
-print(event.sender_id)      # 送信者アカウントID
-print(event.message_chain)  # メッセージチェーン
-```
-
-### デフォルト動作を防止
-
-```python
-def prevent_default(self):
-    """デフォルト動作を防止する"""
-
-# 使用例
-event_context.prevent_default()
-```
-
-このメソッドを呼び出すと、このイベントのデフォルトの後続動作が防止され、パイプラインは直接終了します。
+`event_context.prevent_default()` を呼び出すと、現在のイベントのデフォルト処理が停止します。この操作を利用できるイベントは次のとおりです。
 
 <Info>
 以下のイベントのみデフォルト動作を阻止できます：
@@ -297,14 +268,4 @@ event_context.prevent_default()
   - NormalMessageResponded
 </Info>
 
-### 後続実行を防止
-
-```python
-def prevent_postorder(self):
-    """後続実行を防止する"""
-
-# 使用例
-event_context.prevent_postorder()
-```
-
-このメソッドを呼び出すと、後続のプラグインがこの時点で実行されなくなります。
+`event_context.prevent_postorder()` を呼び出すと、後続プラグインによる現在のイベント処理を停止できます。

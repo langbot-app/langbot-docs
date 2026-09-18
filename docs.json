@@ -677,6 +677,7 @@
                     "group": "Component Development",
                     "pages": [
                       "en/plugin/dev/components/add",
+                      "en/plugin/dev/components/runner",
                       "en/plugin/dev/components/event-listener",
                       "en/plugin/dev/components/command",
                       "en/plugin/dev/components/tool",
@@ -699,7 +700,9 @@
               {
                 "group": "Plugin SDK API",
                 "pages": [
+                  "en/plugin/dev/apis/agent-run",
                   "en/plugin/dev/apis/common",
+                  "en/plugin/dev/apis/platform",
                   "en/plugin/dev/apis/pipeline-events",
                   "en/plugin/dev/apis/messages",
                   "en/plugin/dev/apis/tech-details"
@@ -980,6 +983,7 @@
                     "group": "组件开发",
                     "pages": [
                       "zh/plugin/dev/components/add",
+                      "zh/plugin/dev/components/runner",
                       "zh/plugin/dev/components/event-listener",
                       "zh/plugin/dev/components/command",
                       "zh/plugin/dev/components/tool",
@@ -1002,7 +1006,9 @@
               {
                 "group": "插件 SDK API",
                 "pages": [
+                  "zh/plugin/dev/apis/agent-run",
                   "zh/plugin/dev/apis/common",
+                  "zh/plugin/dev/apis/platform",
                   "zh/plugin/dev/apis/pipeline-events",
                   "zh/plugin/dev/apis/messages",
                   "zh/plugin/dev/apis/tech-details"
@@ -1278,6 +1284,7 @@
                     "group": "コンポーネント開発",
                     "pages": [
                       "ja/plugin/dev/components/add",
+                      "ja/plugin/dev/components/runner",
                       "ja/plugin/dev/components/event-listener",
                       "ja/plugin/dev/components/command",
                       "ja/plugin/dev/components/tool",
@@ -1300,7 +1307,9 @@
               {
                 "group": "プラグイン SDK API",
                 "pages": [
+                  "ja/plugin/dev/apis/agent-run",
                   "ja/plugin/dev/apis/common",
+                  "ja/plugin/dev/apis/platform",
                   "ja/plugin/dev/apis/pipeline-events",
                   "ja/plugin/dev/apis/messages",
                   "ja/plugin/dev/apis/tech-details"

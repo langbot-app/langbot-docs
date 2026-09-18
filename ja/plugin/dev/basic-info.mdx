@@ -159,6 +159,7 @@ spec:
 ```yaml
 - name: mode
   type: select
+  allow_custom: true
   options:  # ドロップダウンオプション、多言語サポート。
     - name: mode1  # 値、ドロップダウンで小さなテキストとして表示。
       label:  # 表示名、多言語サポート。
@@ -170,6 +171,8 @@ spec:
         zh_Hans: 模式 2
   ...
 ```
+
+`allow_custom: true` を設定すると、プリセットに「カスタム」が追加され、その選択時だけ入力欄が表示されます。保存される値は選択した `name` または入力した文字列であり、「カスタム」というマーカーではありません。ランナーの `spec.config` にも使用できます。
 
 ### type: prompt-editor
 

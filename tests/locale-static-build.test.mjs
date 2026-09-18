@@ -35,6 +35,6 @@ test("every localized HTML payload includes the preference client provider", asy
     }
   }
   for (const locale of ["en", "zh", "ja"]) await visit(path.join(root, locale));
-  // 482 canonical content pages plus one framework 404 page per locale.
-  assert.equal(count, 485);
+  // 491 canonical content pages plus one framework 404 page per locale.
+  assert.equal(count, 494);
 });
