@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import { zhOnlyArticleRoutes } from "./article-routes.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const docs = JSON.parse(readFileSync(path.join(root, "docs.json"), "utf8"));
@@ -14,11 +15,7 @@ const localeConfig = {
 };
 const extraArticlePages = {
   en: [],
-  zh: [
-    "zh/articles/langbot-telegram-sandbox-agent",
-    "zh/articles/langbot-wechat-official-account",
-    "zh/articles/langbot-wecom-customer-service-knowledge-base",
-  ],
+  zh: zhOnlyArticleRoutes.map((route) => `zh/${route}`),
   ja: [],
 };
 

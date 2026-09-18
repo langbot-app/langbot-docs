@@ -3,6 +3,7 @@ import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { collectMdxDocuments } from "../scripts/prepare-fumapress.mjs";
+import { zhOnlyArticleRoutes } from "./article-routes.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const publicRoot = path.join(root, "dist/public");
@@ -212,9 +213,7 @@ test("canonical sitemap routes match the legacy Mintlify directory structure", a
 const locales = ["en", "zh", "ja"];
 const hreflangByLocale = { en: "en", zh: "zh-CN", ja: "ja" };
 const zhOnlyRoutes = [
-  "articles/langbot-telegram-sandbox-agent",
-  "articles/langbot-wechat-official-account",
-  "articles/langbot-wecom-customer-service-knowledge-base",
+  ...zhOnlyArticleRoutes,
   "develop/adapter/discord/README",
   "develop/adapter/discord/api_reference",
   "develop/adapter/discord/design",
