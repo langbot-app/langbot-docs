@@ -78,6 +78,14 @@ Plugin built successfully: dist/tmp/RockChinQ-HelloPlugin-0.1.0.lbpkg
 
 You can now check your plugin submission task at [LangBot Plugin Marketplace](https://space.langbot.app/market). Please wait for approval, after which you can view your plugin in the marketplace.
 
+## Request Certified Plugin review
+
+If your release is designed for the Certified Plugin requirements, declare the supported certified runtime mode in `manifest.yaml` and submit a **new version**. This declaration requests review; it does not grant a badge or change runtime behavior by itself.
+
+LangBot Space checks the exact submitted package, runs an advisory code review, and requires a human approval before a Certified Plugin badge can be issued. Certification is bound to the reviewed package version and checksum. Keep workspace configuration, storage, credentials, logs, and background work scoped to the active installation. Do not rely on mutable process-global state.
+
+If the review finds that the release cannot meet these requirements, publish it as a normal dedicated plugin and address the findings in a later immutable version. See [Certified Plugins](/en/plugin/certified-plugins) for user-visible behavior.
+
 <img width="600" src="/images/zh/plugin/dev/plugin_submission.png" />
 
 If you have any questions, you can send an email to `hello@langbot.app` or contact us through [Community](/en/insight/community).

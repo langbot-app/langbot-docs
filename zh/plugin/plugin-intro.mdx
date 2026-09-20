@@ -4,7 +4,7 @@ title: "LangBot 插件"
 
 LangBot 内部由多种组件组成，如大模型工具、命令、消息平台适配器、大模型请求器等。为了满足扩展性和灵活性的需求，我们实现了一套生产级的插件系统。
 
-每个插件被运行在独立的进程中，由 Plugin Runtime 统一管理。
+插件由 Plugin Runtime 统一管理。大多数插件使用专属运行时；通过审核的版本会显示为[认证插件](/zh/plugin/certified-plugins)，并在 LangBot Cloud 中使用认证插件额度。
 
 <img width="600" src="/images/zh/plugin/dev/plugin_system_arch.png" />
 
