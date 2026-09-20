@@ -43,9 +43,9 @@ function staticHtmlForUrlPath(urlPath) {
   return path.join(publicRoot, ...parts, "index.html");
 }
 
-test("all 305 canonical localized documents have static HTML", async () => {
+test("all 308 canonical localized documents have static HTML", async () => {
   const documents = await collectMdxDocuments(root);
-  assert.equal(documents.length, 305);
+  assert.equal(documents.length, 308);
   const missing = [];
   for (const document of documents) {
     try {
@@ -202,6 +202,7 @@ test("canonical sitemap routes match the legacy Mintlify directory structure", a
   // New guides added after migration extend, rather than replace, the legacy routes.
   for (const locale of ["en", "zh", "ja"]) {
     legacy.add(`/${locale}/usage/platforms/mattermost`);
+    legacy.add(`/${locale}/plugin/certified-plugins`);
   }
   const sitemap = await readFile(path.join(publicRoot, "sitemap.xml"), "utf8");
   const actual = new Set([...sitemap.matchAll(/<loc>https:\/\/langbot\.app\/docs(\/[^<]+)<\/loc>/g)]
