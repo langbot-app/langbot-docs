@@ -20,7 +20,13 @@
     "metatags": {
       "og:site_name": "LangBot Docs",
       "twitter:card": "summary_large_image",
-      "og:image": "https://langbot.app/og-image.png"
+      "og:image": "https://langbot.app/docs/images/social/docs-v2.png",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:type": "image/png",
+      "og:image:alt": "LangBot Docs — Build. Connect. Extend.",
+      "twitter:image": "https://langbot.app/docs/images/social/docs-v2.png",
+      "twitter:image:alt": "LangBot Docs — Build. Connect. Extend."
     }
   },
   "navbar": {
