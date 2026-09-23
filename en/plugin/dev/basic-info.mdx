@@ -159,6 +159,7 @@ Dropdown menu. Requires configuring `options`, which represents the dropdown men
 ```yaml
 - name: mode
   type: select
+  allow_custom: true
   options:  # Dropdown options, supports multilingual.
     - name: mode1  # Value, displayed as secondary text in the dropdown.
       label:  # Display name, supports multilingual.
@@ -170,6 +171,8 @@ Dropdown menu. Requires configuring `options`, which represents the dropdown men
         zh_Hans: 模式 2
   ...
 ```
+
+Set `allow_custom: true` to add a Custom option alongside the presets. A text input appears only when Custom is selected. The saved value is the selected `name` or the custom string, never a Custom marker. This also applies to a runner’s `spec.config`.
 
 ### type: prompt-editor
 

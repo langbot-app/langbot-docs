@@ -1954,6 +1954,27 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/compatibility" />
   </url>
   <url>
+    <loc>https://langbot.app/docs/en/plugin/dev/apis/agent-run</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/agent-run" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/zh/plugin/dev/apis/agent-run</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/agent-run" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/ja/plugin/dev/apis/agent-run</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/agent-run" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/agent-run" />
+  </url>
+  <url>
     <loc>https://langbot.app/docs/en/plugin/dev/apis/common</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/common" />
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/common" />
@@ -2015,6 +2036,27 @@
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/pipeline-events" />
     <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/pipeline-events" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/pipeline-events" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/en/plugin/dev/apis/platform</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/platform" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/zh/plugin/dev/apis/platform</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/platform" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/ja/plugin/dev/apis/platform</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/apis/platform" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/apis/platform" />
   </url>
   <url>
     <loc>https://langbot.app/docs/en/plugin/dev/apis/tech-details</loc>
@@ -2204,6 +2246,27 @@
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/components/parser" />
     <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/components/parser" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/components/parser" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/en/plugin/dev/components/runner</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/components/runner" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/zh/plugin/dev/components/runner</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/components/runner" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/ja/plugin/dev/components/runner</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/dev/components/runner" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/dev/components/runner" />
   </url>
   <url>
     <loc>https://langbot.app/docs/en/plugin/dev/components/tool</loc>

@@ -259,42 +259,13 @@ class PromptPreProcessing(BaseEventModel):
     """此对话现有消息记录，可修改，langbot_plugin.api.entities.builtin.provider.message.Message 或 langbot_plugin.api.entities.builtin.provider.message.MessageChunk 类型"""
 ```
 
-## 事件上下文 API
+## EventListener 上下文
 
-```python
-...
-        @self.handler(events.PersonMessageReceived)
-        async def handler(event_context: context.EventContext):
-            ...
-```
-
-事件处理方法将被传入`EventContext`对象，该对象包含事件的上下文信息，该对象同时具有[请求 API](/zh/plugin/dev/apis/common)和事件上下文特定 API，以下为事件上下文特定 API 列表：
-
-### 获取原事件属性
-
-`event_context.event` 属性为原事件对象，可获取原事件的属性。其类型即为监听的事件类型。
-
-例如：当监听的事件是`GroupMessageReceived`时：
-
-```python
-event = event_context.event
-print(event.launcher_type)  # 发起对象类型(group)
-print(event.launcher_id)    # 群号
-print(event.sender_id)      # 发送者账号 ID
-print(event.message_chain)  # 消息链
-```
+事件处理函数通过 `event_context.event` 读取当前事件。`EventContext` 的完整属性和方法见[上下文 API](/zh/plugin/dev/apis/agent-run#eventlistener)。
 
 ### 阻止默认行为
 
-```python
-def prevent_default(self):
-    """阻止默认行为"""
-
-# 调用示例
-event_context.prevent_default()
-```
-
-调用该方法后，该事件后续默认行为将被阻止，流水线将直接结束。
+调用 `event_context.prevent_default()` 后，当前事件的默认处理将停止。仅以下事件支持此操作：
 
 <Info>
 仅以下事件可阻止默认行为：
@@ -308,14 +279,4 @@ event_context.prevent_default()
   - NormalMessageResponded
 </Info>
 
-### 阻止后序插件执行
-
-```python
-def prevent_postorder(self):
-    """阻止后序插件执行"""
-
-# 调用示例
-event_context.prevent_postorder()
-```
-
-调用该方法后，注册了该事件的后序插件此次将不被执行。
+调用 `event_context.prevent_postorder()` 可阻止后续插件继续处理当前事件。
