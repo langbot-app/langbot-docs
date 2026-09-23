@@ -1,0 +1,27 @@
+---
+title: "Certified Plugins"
+description: "How LangBot identifies reviewed plugin releases and how the allowance works in Cloud."
+---
+
+A **Certified Plugin** is a specific plugin release that LangBot has reviewed for the certified-plugin requirements. Certification belongs to the exact published version, not to the author account or plugin name alone.
+
+## What you see
+
+Certified Plugin releases show a **Certified Plugin** badge in the marketplace and plugin details. A plugin without the badge is still a normal plugin; it is not treated as unsafe simply because it is not certified.
+
+In LangBot Cloud, Certified Plugins and other plugins use separate allowances. The install screen shows which allowance applies before you install. Existing installations are not removed just because an older release does not carry certification.
+
+## Using a Certified Plugin
+
+1. Open the plugin in the marketplace and select a version carrying the Certified Plugin badge.
+2. Install or update it from LangBot's plugin management page.
+3. Configure it for your workspace as usual.
+4. Use the plugin log view for workspace-scoped diagnostic records when available.
+
+## For plugin authors
+
+Certification is requested by declaring the supported certified-runtime mode in the plugin manifest and submitting a new immutable release. The declaration is only a request: LangBot Space performs an advisory automated review, a human reviewer makes the publication decision, and certification is issued only for the exact reviewed package.
+
+Authors should keep configuration, storage, logs, background work, and credentials scoped to the active installation and workspace. Do not rely on mutable process-global state or raw process logs. If a release cannot meet those requirements, publish it as a normal dedicated plugin instead.
+
+See [publishing to the marketplace](/en/plugin/dev/publish/market) for submission guidance.

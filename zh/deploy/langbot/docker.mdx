@@ -50,3 +50,12 @@ docker compose --profile all up -d
 - **服务器部署**：打开 `http://你的服务器IP:5300`，确保防火墙允许你的设备访问该端口。
 
 按照页面提示完成初始化，再添加[模型](/zh/usage/models/readme)和[机器人](/zh/usage/platforms/readme)。
+
+## Beta 版本（可选）
+
+如需试用 Beta 而非上述稳定版，请将 [dev/4.11.x 的 Compose 文件](https://raw.githubusercontent.com/langbot-app/LangBot/dev/4.11.x/docker/docker-compose.yaml)下载为 `compose.yaml`，保存到单独的可写目录。手动将**所有** `rockchin/langbot` 镜像改为 `rockchin/langbot:beta`：包括 Core（`langbot`）、插件运行时（`langbot_plugin_runtime`）和 Box（`langbot_box`，若存在）。每次发布 Beta 都会更新 `beta` 标签。在该目录执行以下命令启动或更新：
+
+```bash
+docker compose --profile all pull
+docker compose --profile all up -d
+```

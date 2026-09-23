@@ -50,3 +50,12 @@ docker compose --profile all up -d
 - **サーバーにインストールした場合**：`http://サーバーのIP:5300` を開きます。ファイアウォールで自分の端末からこのポートへのアクセスを許可してください。
 
 画面の案内に従って初期設定を完了し、[モデル](/ja/usage/models/readme)と[ボット](/ja/usage/platforms/readme)を追加してください。
+
+## Beta 版（任意）
+
+上記の安定版の代わりに Beta を試す場合は、[dev/4.11.x の Compose ファイル](https://raw.githubusercontent.com/langbot-app/LangBot/dev/4.11.x/docker/docker-compose.yaml)を別の書き込み可能なディレクトリに `compose.yaml` として保存します。**すべての** `rockchin/langbot` イメージを手動で `rockchin/langbot:beta` に変更してください。対象は Core（`langbot`）、プラグインランタイム（`langbot_plugin_runtime`）、Box（`langbot_box` がある場合）です。`beta` タグは Beta リリースごとに更新されます。そのディレクトリで次を実行して起動・更新します：
+
+```bash
+docker compose --profile all pull
+docker compose --profile all up -d
+```

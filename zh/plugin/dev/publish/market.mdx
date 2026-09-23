@@ -78,6 +78,14 @@ Plugin built successfully: dist/tmp/RockChinQ-HelloPlugin-0.1.0.lbpkg
 
 您现在可以在[LangBot 插件市场](https://space.langbot.app/market)查看您的插件提交任务。请等待审核通过后，您可以在插件市场查看您的插件。
 
+## 申请认证插件审核
+
+如果该版本准备满足认证插件要求，请在 `manifest.yaml` 中声明支持的认证运行模式，并提交一个**新版本**。声明只是申请，不会自行获得标识，也不会自行改变运行行为。
+
+LangBot Space 会检查本次提交的精确插件包，进行辅助代码审查，并在人工批准后才签发认证插件标识。认证绑定到已审核的插件版本与校验和。请让工作区配置、存储、凭据、日志和后台工作都与当前安装绑定，不要依赖可变的进程全局状态。
+
+如果审核发现该版本无法满足要求，请先作为普通专属插件发布，并在后续不可变版本中修复问题。用户侧说明见[认证插件](/zh/plugin/certified-plugins)。
+
 <img width="600" src="/images/zh/plugin/dev/plugin_submission.png" />
 
 有任何问题，您可以发送邮件到`hello@langbot.app`或通过[社区](/zh/insight/community)联系我们。

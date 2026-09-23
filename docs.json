@@ -20,7 +20,13 @@
     "metatags": {
       "og:site_name": "LangBot Docs",
       "twitter:card": "summary_large_image",
-      "og:image": "https://langbot.app/og-image.png"
+      "og:image": "https://langbot.app/docs/images/social/docs-v2.png",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:type": "image/png",
+      "og:image:alt": "LangBot Docs — Build. Connect. Extend.",
+      "twitter:image": "https://langbot.app/docs/images/social/docs-v2.png",
+      "twitter:image:alt": "LangBot Docs — Build. Connect. Extend."
     }
   },
   "navbar": {
@@ -670,6 +676,7 @@
               {
                 "group": "Plugin Development",
                 "pages": [
+                  "en/plugin/certified-plugins",
                   "en/plugin/dev/tutor",
                   "en/plugin/dev/basic-info",
                   "en/plugin/dev/directory-structure",
@@ -976,6 +983,7 @@
               {
                 "group": "插件开发",
                 "pages": [
+                  "zh/plugin/certified-plugins",
                   "zh/plugin/dev/tutor",
                   "zh/plugin/dev/basic-info",
                   "zh/plugin/dev/directory-structure",
@@ -1277,6 +1285,7 @@
               {
                 "group": "プラグイン開発",
                 "pages": [
+                  "ja/plugin/certified-plugins",
                   "ja/plugin/dev/tutor",
                   "ja/plugin/dev/basic-info",
                   "ja/plugin/dev/directory-structure",

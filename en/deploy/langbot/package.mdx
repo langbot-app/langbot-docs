@@ -15,6 +15,14 @@ uvx langbot@latest
 
 This will set the current directory as the working directory, and you can access `http://localhost:5300` to start using it.
 
+## Beta releases (optional)
+
+To try Beta 3 instead, use the command below. `--prerelease=allow` also permits prereleases of dependencies; `--refresh` refreshes cached package data.
+
+```bash
+uvx --prerelease=allow --refresh langbot==4.11.0b3
+```
+
 ## Optional SeekDB support
 
 The default installation uses Chroma and does not include the SeekDB Python

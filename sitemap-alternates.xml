@@ -1912,6 +1912,27 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/insight/troubleshooting" />
   </url>
   <url>
+    <loc>https://langbot.app/docs/en/plugin/certified-plugins</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/certified-plugins" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/zh/plugin/certified-plugins</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/certified-plugins" />
+  </url>
+  <url>
+    <loc>https://langbot.app/docs/ja/plugin/certified-plugins</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://langbot.app/docs/ja/plugin/certified-plugins" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://langbot.app/docs/en/plugin/certified-plugins" />
+  </url>
+  <url>
     <loc>https://langbot.app/docs/en/plugin/compatibility</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://langbot.app/docs/en/plugin/compatibility" />
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://langbot.app/docs/zh/plugin/compatibility" />

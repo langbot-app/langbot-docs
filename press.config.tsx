@@ -404,6 +404,9 @@ export default defineConfig({
   // One registration is intentional: its adapter and loader plugin handle all
   // OpenAPI virtual pages, regardless of which content source generated them.
   .plugins(
+    // Replace the recommended generic Takumi artwork with our shared static
+    // brand card. Keeping its plugin name suppresses duplicate og:image tags.
+    { name: "core:takumi" },
     {
       name: "langbot:locale-preference",
       init() {

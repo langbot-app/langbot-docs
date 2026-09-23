@@ -10,7 +10,7 @@ class DockerDeploymentFlowTests(unittest.TestCase):
     def test_all_locales_follow_one_setup_path(self):
         for locale in ("zh", "en", "ja"):
             with self.subTest(locale=locale):
-                text = (ROOT / locale / "deploy/langbot/docker.mdx").read_text()
+                text = (ROOT / locale / "deploy/langbot/docker.mdx").read_text().split("\n## Beta", 1)[0]
                 headings = re.findall(r"^## (\d+)\. .+$", text, re.MULTILINE)
                 self.assertEqual(headings, ["1", "2", "3", "4"])
                 download = "git clone https://github.com/langbot-app/LangBot\ncd LangBot/docker"
@@ -29,7 +29,7 @@ class DockerDeploymentFlowTests(unittest.TestCase):
     def test_common_commands_are_editable_and_not_linux_only(self):
         for locale in ("zh", "en", "ja"):
             with self.subTest(locale=locale):
-                text = (ROOT / locale / "deploy/langbot/docker.mdx").read_text()
+                text = (ROOT / locale / "deploy/langbot/docker.mdx").read_text().split("\n## Beta", 1)[0]
                 for platform in ("Windows", "macOS", "Linux", "PowerShell", "Docker Desktop"):
                     self.assertIn(platform, text)
                 commands = re.findall(r"```bash\n(.*?)\n```", text, re.DOTALL)
