@@ -79,10 +79,9 @@ class DashboardPage(Page):
         # request.body:     请求体（已解析的 JSON，或 None）
 
         if request.endpoint == '/stats' and request.method == 'GET':
-            # 通过 self.plugin 访问插件实例的共享状态
-            return PageResponse.ok({
-                'total': len(self.plugin.entries),
-            })
+            # 从 Host 存储读取当前 installation 的数据
+            entries = await self.load_entries_for_current_installation()
+            return PageResponse.ok({'total': len(entries)})
 
         return PageResponse.fail(f'Unknown endpoint: {request.endpoint}')
 ```
@@ -200,24 +199,22 @@ from langbot_plugin.api.definition.components.page import Page, PageRequest, Pag
 class ManagerPage(Page):
 
     async def handle_api(self, request: PageRequest) -> PageResponse:
-        plugin = self.plugin
-
         if request.endpoint == '/entries' and request.method == 'GET':
-            return PageResponse.ok({'entries': plugin.entries})
+            entries = await self.load_entries_for_current_installation()
+            return PageResponse.ok({'entries': entries})
 
         if request.endpoint == '/entries' and request.method == 'POST':
             question = (request.body or {}).get('question', '').strip()
             answer = (request.body or {}).get('answer', '').strip()
             if not question or not answer:
                 return PageResponse.fail('question and answer are required')
-            entry = plugin.add_entry(question, answer)
-            await plugin.persist()
+            entry = {'question': question, 'answer': answer}
+            await self.save_entry_for_current_installation(entry)
             return PageResponse.ok({'entry': entry})
 
         if request.endpoint == '/entries' and request.method == 'DELETE':
             entry_id = (request.body or {}).get('id', '')
-            if plugin.delete_entry(entry_id):
-                await plugin.persist()
+            if await self.delete_entry_for_current_installation(entry_id):
                 return PageResponse.ok({'deleted': entry_id})
             return PageResponse.fail('entry not found')
 
@@ -242,6 +239,6 @@ await langbot.api('/entries', { id: '...' }, 'DELETE');
 ## 注意事项
 
 - 页面运行在 `sandbox="allow-scripts allow-forms"` 的 iframe 中，不能弹窗或导航父页面
-- 通过 `self.plugin` 访问插件实例的共享状态，Page 和 Tool 组件可以共享数据
+- 认证 Page 必须把租户数据放在 installation-scoped Host 存储中；`self.plugin` 是进程级共享对象，不能保存租户条目。上面的存储 helper 名仅为示意，请使用当前组件可用的 SDK Host 存储 API。
 - 使用 `PageResponse.ok()` 和 `PageResponse.fail()` 构造响应，确保格式一致
 - Page SDK 的 `<script>` 标签必须放在使用 `langbot` 对象的代码之前

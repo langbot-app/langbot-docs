@@ -1,27 +1,60 @@
 ---
-title: "认证插件"
-description: "了解 LangBot 如何标识已审核的插件版本，以及 Cloud 中的额度使用方式。"
+title: "认证插件与无状态组件"
+description: "认证插件为什么共享 Worker，以及 stateless-v1 组件规范。"
 ---
 
-**认证插件**是通过 LangBot 审核要求的某个具体插件版本。认证绑定到已发布的精确版本，而不是作者账号或插件名称。
+**认证插件**不是普通安全徽章，而是平台对某个精确、不可变插件版本授予的跨租户共享执行资格。相同 artifact digest 的安装可以共享一个 Worker、一个 `BasePlugin` 实例和一组组件实例；每个安装只保留轻量的配置、权限与生命周期上下文。这里的“一组组件”指每个已声明组件 manifest 各一个实例，包括 EventListener、Tool、Command、KnowledgeEngine、Parser、Page 和 Runner。
 
-## 你会看到什么
+## 声明
 
-认证版本会在扩展市场和插件详情中显示**认证插件**标识。没有该标识的插件仍是正常插件；未认证不等于不安全。
+```yaml
+execution:
+  python:
+    path: main.py
+    attr: Plugin
+  sharedRuntime: shared-runtime-v1
+  componentModel: stateless-v1
+```
 
-在 LangBot Cloud 中，认证插件与其他插件使用不同的额度。安装前，界面会明确提示本次安装使用哪一类额度。已有安装不会因为旧版本没有认证而被自动删除。
+两个字段必须同时出现。声明只是申请，不能代替辅助审查、人工批准和精确 artifact 签名。
 
-## 使用认证插件
+## 无状态组件规范
 
-1. 在市场打开插件，选择带有认证插件标识的版本。
-2. 从 LangBot 的插件管理页面安装或更新。
-3. 按工作区正常配置并使用。
-4. 可用时，通过插件日志查看与当前工作区相关的诊断记录。
+- `BasePlugin.initialize()` 和组件 `initialize()` 是进程级初始化，每个 Worker 只运行一次。
+- 所有组件实例都可能同时处理不同工作区的调用，必须可重入。
+- 在 `BasePlugin` 中使用 `self.get_config()`；在组件中使用 `self.get_plugin_config()` 或 `self.plugin.get_config()` 读取当前安装配置。
+- 不得在实例字段或模块全局变量中保存配置、凭据、Workspace/installation ID 或请求数据。
+- 不得在 `initialize()` 中读取并保存租户配置。
+- 存储、文件、凭据、日志、模型及其他平台能力必须通过 SDK Host API 访问；SDK 从当前 task-local invocation context 取得权限。
+- 持久租户状态必须保存在 Host 服务中。进程内 cache 只能保存 artifact 级公共数据，或以完整 installation binding 为 key 并支持撤销清理。
+- `stateless-v1` 当前禁止携带租户数据的 detached 后台任务或线程；SDK 尚未提供插件侧所有权/撤销 API。
 
-## 给插件作者
+这些约束为未来 serverless 组件执行保留接口语义；当前版本仍运行长生命周期 Worker，并未提供 serverless 部署模式。
 
-作者可在 manifest 中声明希望支持的认证运行模式，并提交新的不可变版本。声明只是申请：LangBot Space 会先进行辅助代码审查，再由人工审核发布；只有经过审核的精确插件包才会获得认证。
+## 配置访问示例
 
-请让配置、存储、日志、后台工作和凭据都与当前安装和工作区绑定。不要依赖可变的进程全局状态或原始进程日志。无法满足这些要求的版本，仍可作为普通专属插件发布。
+```python
+class LookupTool(Tool):
+    async def initialize(self):
+        self.transport = StatelessHTTPTransport()
 
-提交说明请参阅[发布到插件市场](/zh/plugin/dev/publish/market)。
+    async def call(self, params, **kwargs):
+        config = self.get_plugin_config()
+        return await self.transport.lookup(config["endpoint"], params)
+```
+
+不要这样写：
+
+```python
+async def initialize(self):
+    self.endpoint = self.plugin.config["endpoint"]
+    self.api_key = self.plugin.config["api_key"]
+```
+
+共享初始化没有租户配置，因此这段代码会读取空值/旧值或失败；任何把调用配置保存到共享对象的做法都是认证 blocker。
+
+## 兼容旧插件
+
+旧源码和未签名插件包仍兼容 dedicated Worker。在 OSS 中，没有受信任 `stateless-v1` v2 证书的插件按准入策略保持 dedicated；Cloud 可能在安装前拒绝不满足证书策略的插件。已有安装不代表获得新共享资格。仅修改 manifest 而不迁移代码不会通过认证审查。
+
+认证流程仍包括辅助代码审查和人工批准，并将插件身份、版本、digest、`shared-runtime-v1` 与 `stateless-v1` 一起签入证书。提交方式参阅[发布到插件市场](/zh/plugin/dev/publish/market)。

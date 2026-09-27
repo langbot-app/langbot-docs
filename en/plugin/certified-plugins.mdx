@@ -1,27 +1,58 @@
 ---
-title: "Certified Plugins"
-description: "How LangBot identifies reviewed plugin releases and how the allowance works in Cloud."
+title: "Certified plugins and stateless components"
+description: "Why certified plugins share workers and how to implement stateless-v1 components."
 ---
 
-A **Certified Plugin** is a specific plugin release that LangBot has reviewed for the certified-plugin requirements. Certification belongs to the exact published version, not to the author account or plugin name alone.
+A **Certified Plugin** badge grants a specific immutable plugin artifact eligibility for cross-tenant shared execution. Installations of the same artifact digest may share one Worker, one `BasePlugin` object and one instance of each component. Each installation contributes only lightweight configuration, authority and lifecycle context. “Each component” means one instance for every declared component manifest across EventListener, Tool, Command, KnowledgeEngine, Parser, Page and Runner.
 
-## What you see
+## Declaration
 
-Certified Plugin releases show a **Certified Plugin** badge in the marketplace and plugin details. A plugin without the badge is still a normal plugin; it is not treated as unsafe simply because it is not certified.
+```yaml
+execution:
+  python:
+    path: main.py
+    attr: Plugin
+  sharedRuntime: shared-runtime-v1
+  componentModel: stateless-v1
+```
 
-In LangBot Cloud, Certified Plugins and other plugins use separate allowances. The install screen shows which allowance applies before you install. Existing installations are not removed just because an older release does not carry certification.
+Both fields are required. The declaration is an application, not approval: advisory source review, explicit human approval and a signature over the exact artifact remain mandatory.
 
-## Using a Certified Plugin
+## Stateless component contract
 
-1. Open the plugin in the marketplace and select a version carrying the Certified Plugin badge.
-2. Install or update it from LangBot's plugin management page.
-3. Configure it for your workspace as usual.
-4. Use the plugin log view for workspace-scoped diagnostic records when available.
+- Plugin and component `initialize()` methods are process-scoped and run once per Worker.
+- Component objects must be re-entrant because calls from multiple Workspaces can overlap.
+- On `BasePlugin`, read installation configuration with `self.get_config()`. In a component, use `self.get_plugin_config()` or `self.plugin.get_config()`.
+- Never retain configuration, credentials, Workspace/installation identity or request data in instance fields or module globals.
+- Do not capture tenant configuration in `initialize()`.
+- Use SDK Host APIs for storage, files, credentials, logs, models and other platform capabilities. Authority comes from the task-local invocation context.
+- Durable tenant state belongs in Host services. Process caches may contain artifact-level public data only, or must use the complete installation binding as their key and support revocation cleanup.
+- Tenant-bearing detached tasks and threads are forbidden in `stateless-v1`; the SDK does not yet expose a plugin-facing ownership/revocation API.
 
-## For plugin authors
+The contract intentionally preserves serverless-ready semantics, but current releases still run long-lived Workers and do not offer a serverless deployment mode.
 
-Certification is requested by declaring the supported certified-runtime mode in the plugin manifest and submitting a new immutable release. The declaration is only a request: LangBot Space performs an advisory automated review, a human reviewer makes the publication decision, and certification is issued only for the exact reviewed package.
+## Configuration example
 
-Authors should keep configuration, storage, logs, background work, and credentials scoped to the active installation and workspace. Do not rely on mutable process-global state or raw process logs. If a release cannot meet those requirements, publish it as a normal dedicated plugin instead.
+```python
+class LookupTool(Tool):
+    async def initialize(self):
+        self.transport = StatelessHTTPTransport()
 
-See [publishing to the marketplace](/en/plugin/dev/publish/market) for submission guidance.
+    async def call(self, params, **kwargs):
+        config = self.get_plugin_config()
+        return await self.transport.lookup(config["endpoint"], params)
+```
+
+Do not retain tenant data during process initialization:
+
+```python
+async def initialize(self):
+    self.endpoint = self.plugin.config["endpoint"]
+    self.api_key = self.plugin.config["api_key"]
+```
+
+Shared initialization has no tenant config, so this reads empty/stale data or fails. Any attempt to retain invocation config on the shared object blocks certification.
+
+## Legacy compatibility
+
+Legacy source and unsigned packages remain compatible on dedicated Workers. In OSS, packages without a trusted `stateless-v1` v2 certificate stay dedicated according to admission policy. Cloud can reject packages that do not meet its certificate policy before installation; existing installations are not proof of new eligibility. Changing only the manifest does not satisfy certification review.
