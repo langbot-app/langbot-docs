@@ -3,7 +3,7 @@ title: "Certified plugins and stateless components"
 description: "Why certified plugins share workers and how to implement stateless-v1 components."
 ---
 
-A valid trusted certificate on the exact downloaded plugin artifact grants eligibility for cross-tenant singleton Worker execution in LangBot Cloud. A marketplace **Certified Plugin** badge alone does not prove that the downloaded ZIP passes verification or that a live Worker is shared. Installations of the same artifact digest may share one Worker, one `BasePlugin` object and one instance of each component. Each installation contributes only lightweight configuration, authority and lifecycle context. “Each component” means one instance for every declared component manifest across EventListener, Tool, Command, KnowledgeEngine, Parser, Page and Runner.
+Certification means that an exact immutable plugin artifact is approved for cross-tenant sharing in LangBot Cloud; it is not a general quality or safety badge. An installed artifact with a valid trusted certificate must run in shared mode, not dedicated mode. A marketplace **Certified Plugin** badge alone does not prove that the downloaded ZIP passes verification or that a live Worker is shared. Installations of the same artifact digest share one Worker, one `BasePlugin` object and one instance of each component. Each installation contributes only lightweight configuration, authority and lifecycle context. “Each component” means one instance for every declared component manifest across EventListener, Tool, Command, KnowledgeEngine, Parser, Page and Runner.
 
 ## Declaration
 
