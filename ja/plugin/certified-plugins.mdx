@@ -3,7 +3,7 @@ title: "認証プラグインとステートレスコンポーネント"
 description: "認証プラグインの共有 Worker と stateless-v1 実装規約。"
 ---
 
-**認証プラグイン**は単なる安全バッジではありません。変更不能な特定の artifact に対して、テナントをまたぐ共有実行を許可する資格です。同じ artifact digest の installation は、1 つの Worker、1 つの `BasePlugin`、各種コンポーネントの単一インスタンスを共有します。installation ごとに保持するのは、軽量な設定・権限・ライフサイクルコンテキストだけです。「各コンポーネント」は EventListener、Tool、Command、KnowledgeEngine、Parser、Page、Runner の宣言済み manifest ごとに 1 インスタンスという意味です。
+LangBot Cloud でワークスペースをまたぐ単一 Worker の共有資格を与えるのは、ダウンロードした正確な artifact の有効な信頼済み署名です。マーケットプレイスの**認証プラグイン**表示だけでは、ZIP の検証や実際の Worker 共有は証明できません。認証は一般的な安全評価ではありません。同じ artifact digest の installation は、1 つの Worker、1 つの `BasePlugin`、各種コンポーネントの単一インスタンスを共有します。installation ごとに保持するのは、軽量な設定・権限・ライフサイクルコンテキストだけです。「各コンポーネント」は EventListener、Tool、Command、KnowledgeEngine、Parser、Page、Runner の宣言済み manifest ごとに 1 インスタンスという意味です。
 
 ## 宣言
 
@@ -16,7 +16,7 @@ execution:
   componentModel: stateless-v1
 ```
 
-2 つのフィールドは必須です。宣言だけでは認証されません。ソースの補助レビュー、人による明示的な承認、正確な artifact への署名が必要です。
+2 つのフィールドは必須です。宣言だけでは認証されません。正確な artifact に紐付いた信頼できる補助レビュー、人による明示的な承認、有効な署名が必要です。補助レビューは内部の前提条件であり、中間の認証段階ではありません。
 
 ## ステートレス規約
 
@@ -33,4 +33,4 @@ execution:
 
 ## 旧プラグインとの互換性
 
-既存のソースと未署名パッケージは dedicated Worker で互換性を維持します。OSS では、信頼済み `stateless-v1` v2 証明書がないパッケージはポリシーに従って dedicated になります。Cloud は証明書ポリシーを満たさないパッケージをインストール前に拒否する場合があります。manifest だけの変更では認証要件を満たしません。
+既存のソースと未署名パッケージは専用 Worker で互換性を維持し、Cloud でも未署名の専用インストールが可能です。専用実行の認証や署名はありません。Cloud は不正・偽造・未信頼、または `stateless-v1` の署名済み宣言を欠く旧形式の証明書を、未署名扱いせず拒否します。セルフホスト OSS は認証発行者の公開鍵を内蔵せず、単一 Workspace のみサポートします。OSS で鍵を設定して認証共有実行を行うことはサポートされません。表示や既存のインストールは共有の証明ではなく、manifest の変更だけでは認証要件を満たしません。

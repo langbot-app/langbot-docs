@@ -3,7 +3,7 @@ title: "Certified plugins and stateless components"
 description: "Why certified plugins share workers and how to implement stateless-v1 components."
 ---
 
-A **Certified Plugin** badge grants a specific immutable plugin artifact eligibility for cross-tenant shared execution. Installations of the same artifact digest may share one Worker, one `BasePlugin` object and one instance of each component. Each installation contributes only lightweight configuration, authority and lifecycle context. “Each component” means one instance for every declared component manifest across EventListener, Tool, Command, KnowledgeEngine, Parser, Page and Runner.
+A valid trusted certificate on the exact downloaded plugin artifact grants eligibility for cross-tenant singleton Worker execution in LangBot Cloud. A marketplace **Certified Plugin** badge alone does not prove that the downloaded ZIP passes verification or that a live Worker is shared. Installations of the same artifact digest may share one Worker, one `BasePlugin` object and one instance of each component. Each installation contributes only lightweight configuration, authority and lifecycle context. “Each component” means one instance for every declared component manifest across EventListener, Tool, Command, KnowledgeEngine, Parser, Page and Runner.
 
 ## Declaration
 
@@ -16,7 +16,7 @@ execution:
   componentModel: stateless-v1
 ```
 
-Both fields are required. The declaration is an application, not approval: advisory source review, explicit human approval and a signature over the exact artifact remain mandatory.
+Both fields are required. The declaration is an application, not approval: authenticated artifact-bound advisory source review, explicit human approval and a valid trusted signature over the exact artifact remain mandatory. Advisory review is an internal prerequisite, not an intermediate certification tier.
 
 ## Stateless component contract
 
@@ -55,4 +55,4 @@ Shared initialization has no tenant config, so this reads empty/stale data or fa
 
 ## Legacy compatibility
 
-Legacy source and unsigned packages remain compatible on dedicated Workers. In OSS, packages without a trusted `stateless-v1` v2 certificate stay dedicated according to admission policy. Cloud can reject packages that do not meet its certificate policy before installation; existing installations are not proof of new eligibility. Changing only the manifest does not satisfy certification review.
+Legacy source and unsigned packages remain compatible on dedicated Workers, including unsigned Cloud installs. There is no dedicated certification or dedicated signature. Cloud must reject malformed, forged, untrusted or legacy signed certificates lacking the `stateless-v1` claim; they are not unsigned fallbacks. OSS ships without a built-in certification issuer public key, supports one Workspace and does not support configuring a key to enable shared-certified execution. Existing installations and a marketplace badge are not proof of shared Worker placement. Changing only the manifest does not satisfy certification review.
