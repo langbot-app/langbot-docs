@@ -84,7 +84,7 @@ If your release is designed for certification, declare both `execution.sharedRun
 
 LangBot Space checks the exact submitted package, runs an advisory code review, and requires a human approval before a Certified Plugin badge can be issued. Certification is bound to the reviewed package version and checksum. Keep workspace configuration, storage, credentials, logs, and background work scoped to the active installation. Do not rely on mutable process-global state.
 
-If the review finds that the release cannot meet these requirements, publish it as a normal dedicated plugin and address the findings in a later immutable version. See [Certified Plugins](/en/plugin/certified-plugins) for user-visible behavior.
+If the review finds that the release cannot meet these requirements, submit an unsigned normal dedicated plugin and address the findings in a later immutable version. There is no dedicated certification or intermediate certification tier. See [Certified Plugins](/en/plugin/certified-plugins) for user-visible behavior.
 
 <img width="600" src="/images/zh/plugin/dev/plugin_submission.png" />
 

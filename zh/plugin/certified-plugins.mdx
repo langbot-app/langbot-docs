@@ -3,7 +3,7 @@ title: "认证插件与无状态组件"
 description: "认证插件为什么共享 Worker，以及 stateless-v1 组件规范。"
 ---
 
-**认证插件**不是普通安全徽章，而是平台对某个精确、不可变插件版本授予的跨租户共享执行资格。相同 artifact digest 的安装可以共享一个 Worker、一个 `BasePlugin` 实例和一组组件实例；每个安装只保留轻量的配置、权限与生命周期上下文。这里的“一组组件”指每个已声明组件 manifest 各一个实例，包括 EventListener、Tool、Command、KnowledgeEngine、Parser、Page 和 Runner。
+精确下载制品的有效可信签名才赋予 LangBot Cloud 跨工作区共享单个 Worker 的资格。市场上的**认证插件**标识本身不能证明下载的 ZIP 已通过验证，也不能证明线上 Worker 实际共享；认证不是普通安全徽章。相同 artifact digest 的安装可以共享一个 Worker、一个 `BasePlugin` 实例和一组组件实例；每个安装只保留轻量的配置、权限与生命周期上下文。这里的“一组组件”指每个已声明组件 manifest 各一个实例，包括 EventListener、Tool、Command、KnowledgeEngine、Parser、Page 和 Runner。
 
 ## 声明
 
@@ -16,7 +16,7 @@ execution:
   componentModel: stateless-v1
 ```
 
-两个字段必须同时出现。声明只是申请，不能代替辅助审查、人工批准和精确 artifact 签名。
+两个字段必须同时出现。声明只是申请，不能代替绑定精确制品的可信辅助审查、人工批准和有效签名。辅助审查只是内部前置证据，不是中间认证等级。
 
 ## 无状态组件规范
 
@@ -55,6 +55,6 @@ async def initialize(self):
 
 ## 兼容旧插件
 
-旧源码和未签名插件包仍兼容 dedicated Worker。在 OSS 中，没有受信任 `stateless-v1` v2 证书的插件按准入策略保持 dedicated；Cloud 可能在安装前拒绝不满足证书策略的插件。已有安装不代表获得新共享资格。仅修改 manifest 而不迁移代码不会通过认证审查。
+旧源码和未签名插件包仍兼容专属 Worker，Cloud 也允许未签名专属安装。不存在专属运行认证或专属签名。Cloud 必须拒绝畸形、伪造、不可信或缺少 `stateless-v1` 声明的旧版签名证书，不能将其当作未签名制品。自托管 OSS 不内置认证签发方公钥，仅支持单工作区；不支持配置公钥获得认证共享运行。已有安装或市场标识不代表获得共享资格。仅修改 manifest 不会通过认证审查。
 
 认证流程仍包括辅助代码审查和人工批准，并将插件身份、版本、digest、`shared-runtime-v1` 与 `stateless-v1` 一起签入证书。提交方式参阅[发布到插件市场](/zh/plugin/dev/publish/market)。
