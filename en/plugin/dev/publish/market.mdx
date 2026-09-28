@@ -80,7 +80,7 @@ You can now check your plugin submission task at [LangBot Plugin Marketplace](ht
 
 ## Request Certified Plugin review
 
-If your release is designed for the Certified Plugin requirements, declare the supported certified runtime mode in `manifest.yaml` and submit a **new version**. This declaration requests review; it does not grant a badge or change runtime behavior by itself.
+If your release is designed for certification, declare both `execution.sharedRuntime: shared-runtime-v1` and `execution.componentModel: stateless-v1` in `manifest.yaml`, then submit a **new version**. The advisory review verifies singleton components are stateless, re-entrant, read config per invocation and retain no tenant data. The declaration alone grants no badge or runtime privilege.
 
 LangBot Space checks the exact submitted package, runs an advisory code review, and requires a human approval before a Certified Plugin badge can be issued. Certification is bound to the reviewed package version and checksum. Keep workspace configuration, storage, credentials, logs, and background work scoped to the active installation. Do not rely on mutable process-global state.
 

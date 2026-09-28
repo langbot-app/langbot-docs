@@ -80,7 +80,7 @@ Plugin built successfully: dist/tmp/RockChinQ-HelloPlugin-0.1.0.lbpkg
 
 ## 申请认证插件审核
 
-如果该版本准备满足认证插件要求，请在 `manifest.yaml` 中声明支持的认证运行模式，并提交一个**新版本**。声明只是申请，不会自行获得标识，也不会自行改变运行行为。
+如果该版本准备申请认证，请在 `manifest.yaml` 中同时声明 `execution.sharedRuntime: shared-runtime-v1` 和 `execution.componentModel: stateless-v1`，并提交一个**新版本**。辅助审查会确认单例组件无状态、可重入、按调用读取配置且不持有租户数据。声明本身不会授予认证标识或共享运行权限。
 
 LangBot Space 会检查本次提交的精确插件包，进行辅助代码审查，并在人工批准后才签发认证插件标识。认证绑定到已审核的插件版本与校验和。请让工作区配置、存储、凭据、日志和后台工作都与当前安装绑定，不要依赖可变的进程全局状态。
 

@@ -79,10 +79,9 @@ class DashboardPage(Page):
         # request.body:     Request body (parsed JSON, or None)
 
         if request.endpoint == '/stats' and request.method == 'GET':
-            # Access shared plugin state via self.plugin
-            return PageResponse.ok({
-                'total': len(self.plugin.entries),
-            })
+            # Read installation-scoped data from a Host storage API.
+            entries = await self.load_entries_for_current_installation()
+            return PageResponse.ok({'total': len(entries)})
 
         return PageResponse.fail(f'Unknown endpoint: {request.endpoint}')
 ```
@@ -200,24 +199,22 @@ from langbot_plugin.api.definition.components.page import Page, PageRequest, Pag
 class ManagerPage(Page):
 
     async def handle_api(self, request: PageRequest) -> PageResponse:
-        plugin = self.plugin
-
         if request.endpoint == '/entries' and request.method == 'GET':
-            return PageResponse.ok({'entries': plugin.entries})
+            entries = await self.load_entries_for_current_installation()
+            return PageResponse.ok({'entries': entries})
 
         if request.endpoint == '/entries' and request.method == 'POST':
             question = (request.body or {}).get('question', '').strip()
             answer = (request.body or {}).get('answer', '').strip()
             if not question or not answer:
                 return PageResponse.fail('question and answer are required')
-            entry = plugin.add_entry(question, answer)
-            await plugin.persist()
+            entry = {'question': question, 'answer': answer}
+            await self.save_entry_for_current_installation(entry)
             return PageResponse.ok({'entry': entry})
 
         if request.endpoint == '/entries' and request.method == 'DELETE':
             entry_id = (request.body or {}).get('id', '')
-            if plugin.delete_entry(entry_id):
-                await plugin.persist()
+            if await self.delete_entry_for_current_installation(entry_id):
                 return PageResponse.ok({'deleted': entry_id})
             return PageResponse.fail('entry not found')
 
@@ -242,6 +239,6 @@ Full example code is available at [FAQManager plugin](https://github.com/langbot
 ## Notes
 
 - Pages run inside a `sandbox="allow-scripts allow-forms"` iframe and cannot open popups or navigate the parent page
-- Access shared plugin state via `self.plugin` — Page and Tool components can share data
+- Certified Pages must keep tenant data in installation-scoped Host storage. `self.plugin` is process-wide and must not hold tenant entries. The storage helper names above are illustrative; use the current SDK Host storage APIs available to your component.
 - Use `PageResponse.ok()` and `PageResponse.fail()` to construct responses for consistent formatting
 - The Page SDK `<script>` tag must be placed before any code that uses the `langbot` object

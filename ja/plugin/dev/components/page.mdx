@@ -79,10 +79,9 @@ class DashboardPage(Page):
         # request.body:     リクエストボディ（解析済みJSON、またはNone）
 
         if request.endpoint == '/stats' and request.method == 'GET':
-            # self.pluginでプラグインインスタンスの共有状態にアクセス
-            return PageResponse.ok({
-                'total': len(self.plugin.entries),
-            })
+            # Host storage から現在の installation のデータを読む
+            entries = await self.load_entries_for_current_installation()
+            return PageResponse.ok({'total': len(entries)})
 
         return PageResponse.fail(f'不明なエンドポイント: {request.endpoint}')
 ```
@@ -200,24 +199,22 @@ from langbot_plugin.api.definition.components.page import Page, PageRequest, Pag
 class ManagerPage(Page):
 
     async def handle_api(self, request: PageRequest) -> PageResponse:
-        plugin = self.plugin
-
         if request.endpoint == '/entries' and request.method == 'GET':
-            return PageResponse.ok({'entries': plugin.entries})
+            entries = await self.load_entries_for_current_installation()
+            return PageResponse.ok({'entries': entries})
 
         if request.endpoint == '/entries' and request.method == 'POST':
             question = (request.body or {}).get('question', '').strip()
             answer = (request.body or {}).get('answer', '').strip()
             if not question or not answer:
                 return PageResponse.fail('質問と回答は必須です')
-            entry = plugin.add_entry(question, answer)
-            await plugin.persist()
+            entry = {'question': question, 'answer': answer}
+            await self.save_entry_for_current_installation(entry)
             return PageResponse.ok({'entry': entry})
 
         if request.endpoint == '/entries' and request.method == 'DELETE':
             entry_id = (request.body or {}).get('id', '')
-            if plugin.delete_entry(entry_id):
-                await plugin.persist()
+            if await self.delete_entry_for_current_installation(entry_id):
                 return PageResponse.ok({'deleted': entry_id})
             return PageResponse.fail('エントリが見つかりません')
 
@@ -242,6 +239,6 @@ await langbot.api('/entries', { id: '...' }, 'DELETE');
 ## 注意事項
 
 - ページは`sandbox="allow-scripts allow-forms"`のiframe内で実行され、ポップアップを開いたり親ページをナビゲートすることはできません
-- `self.plugin`でプラグインインスタンスの共有状態にアクセスできます — PageとToolコンポーネントはデータを共有できます
+- 認証 Page のテナントデータは installation-scoped Host storage に保存します。`self.plugin` はプロセス全体で共有されるため、テナントのエントリを保持してはいけません。上記 helper 名は説明用です。現在の SDK Host storage API を使用してください。
 - `PageResponse.ok()`と`PageResponse.fail()`を使用してレスポンスを構築し、一貫したフォーマットを確保してください
 - Page SDKの`<script>`タグは、`langbot`オブジェクトを使用するコードの前に配置する必要があります

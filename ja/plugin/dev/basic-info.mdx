@@ -28,6 +28,9 @@ execution:
   python:
     path: main.py  # 変更しないでください
     attr: HelloPlugin  # 変更しないでください
+  # ステートレス単一インスタンス規約へ移行し、認証を申請する場合のみ追加：
+  # sharedRuntime: shared-runtime-v1
+  # componentModel: stateless-v1
 ```
 
 プラグインの多言語サポートは[RFC 4646](https://datatracker.ietf.org/doc/html/rfc4646)標準に従います。現在サポートされている言語は次のとおりです:
