@@ -3,7 +3,7 @@ title: "认证插件与无状态组件"
 description: "认证插件为什么共享 Worker，以及 stateless-v1 组件规范。"
 ---
 
-精确下载制品的有效可信签名才赋予 LangBot Cloud 跨工作区共享单个 Worker 的资格。市场上的**认证插件**标识本身不能证明下载的 ZIP 已通过验证，也不能证明线上 Worker 实际共享；认证不是普通安全徽章。相同 artifact digest 的安装可以共享一个 Worker、一个 `BasePlugin` 实例和一组组件实例；每个安装只保留轻量的配置、权限与生命周期上下文。这里的“一组组件”指每个已声明组件 manifest 各一个实例，包括 EventListener、Tool、Command、KnowledgeEngine、Parser、Page 和 Runner。
+认证只代表精确、不可变的插件制品可在 LangBot Cloud 跨租户共享，不是一般的质量或安全徽章。安装的制品拥有有效可信签名后必须以 shared 模式运行，不得回退到 dedicated。市场上的**认证插件**标识本身不能证明下载的 ZIP 已通过验证，也不能证明线上 Worker 实际共享。相同 artifact digest 的安装共享一个 Worker、一个 `BasePlugin` 实例和一组组件实例；每个安装只保留轻量的配置、权限与生命周期上下文。这里的“一组组件”指每个已声明组件 manifest 各一个实例，包括 EventListener、Tool、Command、KnowledgeEngine、Parser、Page 和 Runner。
 
 ## 声明
 

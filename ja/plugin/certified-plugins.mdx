@@ -3,7 +3,7 @@ title: "認証プラグインとステートレスコンポーネント"
 description: "認証プラグインの共有 Worker と stateless-v1 実装規約。"
 ---
 
-LangBot Cloud でワークスペースをまたぐ単一 Worker の共有資格を与えるのは、ダウンロードした正確な artifact の有効な信頼済み署名です。マーケットプレイスの**認証プラグイン**表示だけでは、ZIP の検証や実際の Worker 共有は証明できません。認証は一般的な安全評価ではありません。同じ artifact digest の installation は、1 つの Worker、1 つの `BasePlugin`、各種コンポーネントの単一インスタンスを共有します。installation ごとに保持するのは、軽量な設定・権限・ライフサイクルコンテキストだけです。「各コンポーネント」は EventListener、Tool、Command、KnowledgeEngine、Parser、Page、Runner の宣言済み manifest ごとに 1 インスタンスという意味です。
+認証は、正確で不変なプラグイン artifact が LangBot Cloud でテナント間共有できることを意味し、一般的な品質・安全評価ではありません。インストールされた artifact に有効な信頼済み署名がある場合は shared モードで実行し、dedicated にフォールバックしてはいけません。マーケットプレイスの**認証プラグイン**表示だけでは、ZIP の検証や実際の Worker 共有は証明できません。同じ artifact digest の installation は、1 つの Worker、1 つの `BasePlugin`、各種コンポーネントの単一インスタンスを共有します。installation ごとに保持するのは、軽量な設定・権限・ライフサイクルコンテキストだけです。「各コンポーネント」は EventListener、Tool、Command、KnowledgeEngine、Parser、Page、Runner の宣言済み manifest ごとに 1 インスタンスという意味です。
 
 ## 宣言
 
