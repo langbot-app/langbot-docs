@@ -28,12 +28,11 @@ execution:
   python:
     path: main.py  # 请勿修改
     attr: HelloPlugin  # 请勿修改
-  # 仅在申请认证且代码已迁移为无状态单例时添加：
-  # sharedRuntime: shared-runtime-v1
-  # componentModel: stateless-v1
 ```
 
-插件多语言遵循 [RFC 4646](https://datatracker.ietf.org/doc/html/rfc4646) 标准，目前支持的语言有：
+如果需要申请认证并让多个安装共享运行，还需要在 `execution` 下声明 `sharedRuntime` 与 `componentModel`，见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
+插件多语言遵循 [RFC 4646](https://datatracker.ietf.org/doc/html/rfc4646) 标准。目前支持的语言有：
 
 - `en_US` 英文 （必填）
 - `zh_Hans` 简体中文

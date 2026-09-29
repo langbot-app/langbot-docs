@@ -28,10 +28,9 @@ execution:
   python:
     path: main.py  # Do not modify
     attr: HelloPlugin  # Do not modify
-  # Add only after migrating to the stateless singleton certification contract:
-  # sharedRuntime: shared-runtime-v1
-  # componentModel: stateless-v1
 ```
+
+To certify your plugin and let several installations share one runtime, also declare `sharedRuntime` and `componentModel` under `execution`; see [Certified plugins and shared runtime](/en/plugin/certified-plugins).
 
 Plugin multilingual support follows the [RFC 4646](https://datatracker.ietf.org/doc/html/rfc4646) standard. Currently supported languages include:
 

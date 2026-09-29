@@ -1,36 +1,189 @@
 ---
-title: "認証プラグインとステートレスコンポーネント"
-description: "認証プラグインの共有 Worker と stateless-v1 実装規約。"
+title: "認証プラグインと共有実行"
+description: "認証とは何か、なぜ存在するのか、いつ必要か、そして shared-runtime-v1 / stateless-v1 の規約。"
 ---
 
-認証は、正確で不変なプラグイン artifact が LangBot Cloud でテナント間共有できることを意味し、一般的な品質・安全評価ではありません。インストールされた artifact に有効な信頼済み署名がある場合は shared モードで実行し、dedicated にフォールバックしてはいけません。マーケットプレイスの**認証プラグイン**表示だけでは、ZIP の検証や実際の Worker 共有は証明できません。同じ artifact digest の installation は、1 つの Worker、1 つの `BasePlugin`、各種コンポーネントの単一インスタンスを共有します。installation ごとに保持するのは、軽量な設定・権限・ライフサイクルコンテキストだけです。「各コンポーネント」は EventListener、Tool、Command、KnowledgeEngine、Parser、Page、Runner の宣言済み manifest ごとに 1 インスタンスという意味です。
+## 認証とは
 
-## 宣言
+認証とは、LangBot が**正確で不変な 1 つのプラグイン artifact** に対して付与する資格です。その artifact は LangBot Cloud で**テナントをまたいで共有実行**することが承認されます。
+
+- 認証は artifact そのもの（digest で識別される特定の公開バージョン）に紐付き、プラグイン名や作者には紐付きません。新しいバージョンを公開しても、前のバージョンの認証は引き継がれません。
+- 認証は品質評価ではなく、セキュリティ監査の保証でもありません。
+
+## なぜ認証が必要か
+
+LangBot は既定ではプラグインを共有実行しません。共有の単位が artifact だからです。
+
+- **専用モード**：共有に参加せず、単独で実行します。
+- **共有モード**：同じ artifact digest のすべての installation が 1 つの Worker を共有します。
+
+共有の利点は、プロセス数と起動コストが installation 数に比例して増えないことです。代償は、**1 つのプロセスが複数の Workspace からの呼び出しを同時に処理する**ことです。インスタンスにテナントデータを置いているプラグインは、テナント間でデータが混ざります。
+
+そのためプラットフォームは、この artifact を審査してステートレス規約を満たすことを確認し、その信頼を署名で artifact に固定したうえで、共有配置に載せます。これが認証の目的です。
+
+## 認証が必要な場合
+
+**ほとんどのプラグインには認証は不要です。** 認証しなくてもマーケットプレイスへの公開は可能で、ユーザーの利用も妨げられません。プラグインは専用モードで動作します。
+
+| 状況 | 認証の要否 |
+| --- | --- |
+| マーケットプレイスに公開してユーザーに使ってもらいたいだけ | 不要 |
+| 呼び出しをまたぐプロセス内状態が必要（常駐する外部セッションプロセスなど） | 不要。専用実行のままにしてください |
+| バックグラウンドタスク、タイマー、長期のテナントキャッシュがある | 不要。専用モードのほうが安全です |
+| 認証プラグインの表示がほしい | 必要 |
+| 同じ artifact の複数 installation で 1 つのプロセスを共有し、コストと起動負荷を下げたい | 必要 |
+| Cloud のマルチテナント向けで、共有配置されたい | 必要 |
+
+判断基準は 1 つだけです。**インスタンスにテナントや installation に紐づくデータを一切保存しないと本当に言い切れる場合にのみ、認証に意味があります。**
+
+## 認証後の効果
+
+審査を通過すると、次のようになります。
+
+- artifact が署名され、インストール時は**共有モード**で実行されます。同じ digest の複数の installation が 1 つの Worker を共有します。
+- その Worker 内には `BasePlugin` が 1 つ、宣言した各コンポーネント manifest につき 1 つのインスタンス（EventListener、Tool、Command、KnowledgeEngine、Parser、Page、Runner）だけが存在します。
+- 各 installation は軽量な設定・権限・ライフサイクルコンテキストを 1 つだけ保持し、呼び出しごとに現在のリクエストがどれを使うかを決定します。
+- 認証プラグインの表示が付与されます。
+- セルフホスト OSS は認証発行者の公開鍵を既定で持たないため、認証済みの artifact でもセルフホスト環境では専用モードで動作します。
+
+同時に継続的な義務も発生します。**以降のすべてのバージョンがステートレス規約を満たし続ける必要があります。** コードを変更したら新しいバージョンを提出して再審査を受けます。認証は自動更新されません。
+
+## 必要な対応
+
+### 宣言
+
+`manifest.yaml` の `execution` 配下に 2 つのフィールドを同時に宣言します。
 
 ```yaml
+apiVersion: v1
+kind: Plugin
+metadata:
+  author: your-name
+  name: YourPlugin
+  version: 0.1.1
+spec:
+  config: []
+  components: {}
 execution:
   python:
     path: main.py
-    attr: Plugin
+    attr: YourPlugin
   sharedRuntime: shared-runtime-v1
   componentModel: stateless-v1
 ```
 
-2 つのフィールドは必須です。宣言だけでは認証されません。正確な artifact に紐付いた信頼できる補助レビュー、人による明示的な承認、有効な署名が必要です。補助レビューは内部の前提条件であり、中間の認証段階ではありません。
+| フィールド | 有効な値 | 説明 |
+| --- | --- | --- |
+| `execution.sharedRuntime` | `shared-runtime-v1` | この値のみ受け付けます。他の値を書くとマニフェスト検証に失敗します |
+| `execution.componentModel` | `stateless-v1` | この値のみ受け付けます |
 
-## ステートレス規約
+- 2 つのフィールドは**必ず同時に**宣言します。`sharedRuntime` だけを宣言し `componentModel` を書かないパッケージは、認証検証の段階で拒否されます。
+- これらのフィールドは **SDK 0.7.0** 以降で認識されます。それ以前の SDK は無視するため、古い SDK で宣言の有効性を確認しないでください。
 
-- プラグインとコンポーネントの `initialize()` は Worker ごとに一度だけ実行します。
-- 異なる Workspace の呼び出しが同じオブジェクト上で並行するため、コンポーネントは再入可能にします。
-- `BasePlugin` では `self.get_config()`、コンポーネントでは `self.get_plugin_config()` または `self.plugin.get_config()` で現在の installation 設定を取得します。
-- 設定、認証情報、Workspace/installation ID、リクエストデータをインスタンス属性やモジュールグローバルに保存しません。
-- `initialize()` でテナント設定を読み取り、保持してはいけません。
-- ストレージ、ファイル、認証情報、ログ、モデルなどは SDK の Host API を使います。権限は task-local invocation context から解決されます。
-- 永続的なテナント状態は Host サービスに置きます。プロセス内キャッシュは artifact 共通データだけにするか、完全な installation binding をキーにし、失効時に解放できるようにします。
-- `stateless-v1` ではテナントデータを持つ detached task/thread を禁止します。SDK はまだプラグイン向けの所有権・失効 API を提供していません。
+<Warning>
+宣言は申請であり、承認ではありません。宣言だけでは認証表示も付与されず、実行モードも変わりません。
+</Warning>
 
-この規約は将来の serverless 実行に適した意味論を保ちますが、現在は長寿命 Worker を使用しており、serverless 配備モードは提供していません。
+### ステートレス規約
 
-## 旧プラグインとの互換性
+- `BasePlugin.initialize()` とコンポーネントの `initialize()` は**プロセス単位**の初期化で、Worker ごとに 1 回だけ実行されます。この時点では「現在のインストール」も「現在の Workspace」も存在しません。
+- コンポーネントインスタンスは異なる Workspace から同時に呼び出されるため、すべてのメソッドは再入可能でなければなりません。
+- 現在のインストール設定は呼び出しごとに読み取ります。`BasePlugin` では `self.get_config()`、コンポーネントでは `self.get_plugin_config()` または `self.plugin.get_config()`、Runner では `ctx.config` を使用します。
+- 設定、資格情報、Workspace / installation ID、リクエストデータをインスタンス属性やモジュールグローバルに保存しないでください。
+- `initialize()` でインストール設定を読み取り、保持しないでください。
+- ストレージ、ファイル、資格情報、ログ、モデルなどのプラットフォーム機能は SDK の Host API 経由で利用します。権限は呼び出しごとに解決されるため、自分でキャッシュしないでください。
+- 呼び出しをまたいで保持する必要があるテナント状態は Host サービスに置きます。Runner は `ctx.state_get()` / `ctx.state_set()` などを使用します（`ctx.context.available_apis.state` が `true` である必要があります）。プロセス内キャッシュは artifact レベルの公開データのみ許可されます。テナントデータをキャッシュする場合は、キーに完全な installation 識別子を含め、インストール削除時に解放できるようにしてください。
+- テナントデータを伴うバックグラウンドタスクやスレッドは禁止です。ハンドラーが戻った時点で、その呼び出しのコンテキストと実行関連の呼び出しは無効になります。
 
-既存のソースと未署名パッケージは専用 Worker で互換性を維持し、Cloud でも未署名の専用インストールが可能です。専用実行の認証や署名はありません。Cloud は不正・偽造・未信頼、または `stateless-v1` の署名済み宣言を欠く旧形式の証明書を、未署名扱いせず拒否します。セルフホスト OSS は認証発行者の公開鍵を内蔵せず、単一 Workspace のみサポートします。OSS で鍵を設定して認証共有実行を行うことはサポートされません。表示や既存のインストールは共有の証明ではなく、manifest の変更だけでは認証要件を満たしません。
+### 許可 / 禁止の対照表
+
+| 項目 | 許可 | 禁止 |
+| --- | --- | --- |
+| 設定の読み取り | 呼び出しごとに読み取る（`self.get_plugin_config()`、`ctx.config`） | `initialize()` で読み取り `self` に保持する |
+| コネクションプール / HTTP クライアント | テナント資格情報を含まない共有プール | インストールの endpoint や api key をインスタンスに固定する |
+| キャッシュ | artifact レベルの公開データ、または完全な installation 識別子をキーとし解放可能なもの | Workspace やユーザーをキーにしたモジュールレベルの `dict` を長期間保持する |
+| 呼び出しをまたぐ状態 | Host サービス（Runner は `ctx.state_*`） | インスタンス属性、モジュールグローバル |
+| バックグラウンド処理 | なし | ハンドラーが戻った後もそのコンテキストや実行関連の呼び出しを保持する |
+| ログ | `ctx.log()` または SDK のログ API | モジュールレベルのバックグラウンドスレッドからテナント設定や資格情報を出力する |
+
+### よくある反例
+
+**1. 初期化時にインストール設定を読み取る**
+
+```python
+async def initialize(self):
+    self.endpoint = self.plugin.config["endpoint"]  # プロセス単位の初期化。現在のインストールは存在しない
+    self.api_key = self.plugin.config["api_key"]
+```
+
+共有初期化の段階にはインストール設定がないため、空の値または前回の値しか読めません。
+
+**2. テナントデータをモジュールグローバルにキャッシュする**
+
+```python
+_CACHE = {}  # Workspace やユーザーをキーにすると、インストールやテナントをまたいで残留する
+
+async def call(self, params, **kwargs):
+    if params["user"] not in _CACHE:
+        _CACHE[params["user"]] = await fetch(params["user"])
+```
+
+**3. ハンドラーが戻った後も処理を続ける**
+
+```python
+async def call(self, params, **kwargs):
+    config = self.get_plugin_config()
+    asyncio.create_task(self._upload_later(config))  # ハンドラーは既に戻っており、コンテキストと権限は無効
+    return ok()
+```
+
+**4. インスタンス属性を設定の入れ物として扱う**
+
+```python
+async def initialize(self):
+    self.default_endpoint = "https://api.example.com"  # 公開定数は問題ない
+    self.last_config = {}  # インストール設定を書き込むと違反になる
+```
+
+正しい形：
+
+```python
+class LookupTool(Tool):
+    async def initialize(self):
+        # artifact レベルでテナント情報を含まないオブジェクトのみを置く
+        self.transport = StatelessHTTPTransport()
+
+    async def call(self, params, **kwargs):
+        config = self.get_plugin_config()  # 呼び出しごとに現在のインストール設定を読み取る
+        return await self.transport.lookup(config["endpoint"], params)
+```
+
+### Runner コンポーネントの注意点
+
+Runner はステートレス規約との緊張が最も大きくなります。実行器はセッションやコンテキストをプロセス内に保持しがちだからです。
+
+- `RunnerContext` は**今回の実行中のみ有効**です。コンテキストやその要素をインスタンスに保存して呼び出しをまたいで再利用しないでください。
+- Runner が呼び出しをまたいで保持する必要があるセッション状態は、`ctx.state_get()` / `ctx.state_set()`（スコープは `conversation`、`actor`、`subject`、`runner`）または Host が提供するその他のストレージに置き、インスタンス属性は使わないでください。
+- ハンドラーが戻った後、バックグラウンドタスクで `ctx` を使い続けたり、`self.plugin` 経由の実行関連呼び出しを使い続けたりしないでください。
+- 設計上どうしてもプロセス内の呼び出しをまたぐ状態（長期間常駐する外部セッションプロセスなど）に依存する場合、**`stateless-v1` を宣言しないでください**。専用 Worker のままにします。
+
+コンテキスト API の全体は[実行コンテキスト（RunnerContext）](/ja/plugin/dev/apis/agent-run)を参照してください。
+
+## 自己チェックと提出
+
+提出前に 1 つずつ確認してください。
+
+- [ ] `manifest.yaml` に 2 つのフィールドが正しい値で宣言されている。
+- [ ] リポジトリ全体を検索し、モジュールレベルの可変グローバルが存在しないことを確認した。
+- [ ] `initialize()` はプロセス単位の初期化のみを行い、インストール設定を読み取っていない。
+- [ ] すべてのインストール設定を呼び出し時に読み取っている。
+- [ ] ハンドラーが戻った後に動作し続けるタスクやスレッドがない。
+- [ ] 呼び出しをまたぐ状態は Host API 経由で保存している（Runner は `ctx.state_*`）。
+
+### 提出方法
+
+認証は公開と同じ経路で、追加の手続きはありません。`manifest.yaml` に上記 2 つのフィールドを宣言し、いつもどおり `lbp publish` で**新しいバージョン**を提出します（公開済みのバージョンに後から宣言を追加することはできません）。LangBot Space は提出された正確なパッケージを確認し、補助的なコードレビューを行い、人による承認後に認証プラグインの表示を発行します。認証は審査済みのバージョンとチェックサムに紐付きます。
+
+要件を満たせないと判断された場合は、まず署名なしの通常のプラグインとして公開し、後続の不変バージョンで修正してください。
+
+このチェックで共有実行に不向きだと分かった場合は、通常のプラグインとして提出してください。認証は必須ではありません。公開の流れは[マーケットプレイスへの公開](/ja/plugin/dev/publish/market)を参照してください。
