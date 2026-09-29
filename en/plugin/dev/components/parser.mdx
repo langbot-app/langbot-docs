@@ -200,6 +200,17 @@ result = await self.plugin.invoke_parser(
 # result is a dict containing text, sections, metadata
 ```
 
+## One installation, many usages
+
+A single Parser is used by **several knowledge bases** (different knowledge bases of one installation upload files of different MIME types), and the platform storage key carries no knowledge-base dimension:
+
+- Parse caches and temporary files must be isolated by **knowledge-base ID**, with the ID in the key; never cache them on the instance.
+- `ParseContext` and intermediate parse results are valid only for a single parse; never store them on instance fields or module-level variables.
+- A parse failure affects only that upload of the current knowledge base; it must not make parsing unavailable for the other knowledge bases.
+- If you cache models, parsers or temporary directories per installation, release them in `on_installation_revoked(binding)` and make sure temporary files can be cleaned up.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## Testing the Parser
 
 After creation, execute the command `lbp run` in the plugin directory to start debugging. Then in LangBot:

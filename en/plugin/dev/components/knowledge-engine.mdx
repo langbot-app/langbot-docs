@@ -467,6 +467,18 @@ async def get_knowledge_file_stream(self, storage_path: str) -> bytes:
 file_bytes = await self.plugin.get_knowledge_file_stream(context.file_object.storage_path)
 ```
 
+## One installation, many usages
+
+A single knowledge engine is used by **several knowledge bases** at once, and the platform storage key `(instance, Workspace, owner type, plugin, key)` carries no knowledge-base dimension:
+
+- Persistence and cache keys must include the **knowledge-base ID**, otherwise vectors and document state of different knowledge bases overwrite each other.
+- Locks and reconciliation state must be keyed by `(installation, knowledge base)`; **a failure while ingesting one knowledge base must not block ingestion or retrieval of the others under the same installation**.
+- Only a dispatched mutation with an unknown outcome should enter a state that needs manual reconciliation; deterministic validation errors and pre-dispatch cancellation must not affect later calls.
+- Telemetry and diagnostic failures must not affect the work: never let a log or report failure interrupt ingestion or retrieval, and never write tenant data into a process-wide singleton.
+- If you keep per-installation process-local caches or state, release them in `on_installation_revoked(binding)`.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## Testing the Knowledge Engine
 
 After creation, execute the command `lbp run` in the plugin directory to start debugging. Then in LangBot:

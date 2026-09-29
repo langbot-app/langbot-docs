@@ -207,6 +207,17 @@ Command processing supports returning multiple messages, so please use `yield` s
 
 For specific return values, please refer to the definition of `CommandReturn`: [langbot_plugin.api.entities.builtin.command.context.CommandReturn](https://github.com/langbot-app/langbot-plugin-sdk/tree/main/src/langbot_plugin/api/entities/builtin/command/context.py)
 
+## One installation, many usages
+
+A single command is triggered **concurrently by several conversations**:
+
+- Read config per call; never read it in `initialize()` and cache it on the instance.
+- Never leave command arguments, return values or conversation data on instance fields or module-level variables; `ExecuteContext` is valid only for the current execution.
+- Concurrent triggering means instance fields get interleaved writes — do not use them to hold "current conversation" style state. Data that must survive calls belongs in Host storage, keyed with the conversation identity.
+- If you keep per-installation process-local caches, release them in `on_installation_revoked(binding)`.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## What's Next
 
 You have learned the basic information about command registration and command execution. Next, you can:

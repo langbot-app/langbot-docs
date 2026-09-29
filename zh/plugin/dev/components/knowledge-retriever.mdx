@@ -254,6 +254,18 @@ using_rerank = self.config.get('using_rerank', False)
 search_mode = self.config.get('search_mode', 'embedding')
 ```
 
+## 一个安装，多份用法
+
+一个知识检索器会被**多个知识库**选用，平台的存储键 `(实例, 工作区, 组件类型, 插件名, key)` 不含知识库维度：
+
+- 检索所需的缓存、索引或中间结果必须按**知识库 ID** 隔离，键里要带上知识库 ID，不能放到实例上。
+- 检索的锁与「待对账」状态按 `(安装, 知识库)` 记，一个知识库检索失败不得让同一安装下其他知识库的检索不可用。
+- `RetrievalContext` 只在单次检索内有效，不要把它或检索结果保存到实例字段跨调用复用。
+- 需要跨调用保留的知识库数据存到 Host 存储，键同时包含安装标识与知识库 ID。
+- 如果按安装缓存了连接、索引或其他进程内状态，请在 `on_installation_revoked(binding)` 中释放。
+
+以上约束的完整说明见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
 ## 测试检索器
 
 创建完成后，在插件目录执行命令 `lbp run`，启动调试。然后在 LangBot 中：

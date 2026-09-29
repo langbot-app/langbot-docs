@@ -236,6 +236,17 @@ await langbot.api('/entries', { id: '...' }, 'DELETE');
 
 完整示例代码请参考 [FAQManager 插件](https://github.com/langbot-app/langbot-plugin-demo/tree/main/FAQManager)。
 
+## 一个安装，多份用法
+
+同一个 Page 会被**多次页面请求**调用（同一安装下的不同请求、不同工作区）：
+
+- 不要把上一次请求的数据留在实例上；端点、方法、body 与当前安装信息一律从当前 `PageRequest` / 绑定取。
+- 页面数据一律按安装作用域存放（installation-scoped Host 存储）；`self.plugin` 是进程级共享对象，不能保存租户数据。
+- 不同工作区的请求会共享同一个 Page 实例，实例字段会被交织使用；需要跨请求保留的数据放 Host 存储。
+- 如果按安装维护了进程内缓存，请在 `on_installation_revoked(binding)` 中释放。
+
+以上约束的完整说明见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
 ## 注意事项
 
 - 页面运行在 `sandbox="allow-scripts allow-forms"` 的 iframe 中，不能弹窗或导航父页面

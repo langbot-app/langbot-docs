@@ -201,6 +201,17 @@ result = await self.plugin.invoke_parser(
 # result 为 dict，包含 text、sections、metadata
 ```
 
+## 一个安装，多份用法
+
+一个 Parser 会被**多个知识库**选用（同一安装下不同知识库会上传不同 MIME 类型的文件），而平台的存储键不含知识库维度：
+
+- 解析缓存与临时文件必须按**知识库 ID** 隔离，键里要带上知识库 ID，不要缓存到实例上。
+- `ParseContext` 与解析中间结果只在单次解析内有效，不要保存到实例字段或模块级变量。
+- 解析失败只影响当前知识库的这次上传，不要让其他知识库的解析不可用。
+- 如果按安装缓存了模型、解析器或临时目录，请在 `on_installation_revoked(binding)` 中释放，并确保临时文件可被清理。
+
+以上约束的完整说明见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
 ## 测试解析器
 
 创建完成后，在插件目录执行命令 `lbp run`，启动调试。然后在 LangBot 中：

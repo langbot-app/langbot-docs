@@ -99,6 +99,17 @@ class EventContext(pydantic.BaseModel):
 
 イベント登録は`@self.handler`デコレータを通じて実装され、デコレータのパラメータはイベントタイプです。監視可能なすべてのイベントは`langbot_plugin.api.entities.builtin.events`で定義されています。
 
+## 1 つの installation、複数の用途
+
+同じイベントリスナーは**複数の Workspace、複数のイベントから同時に**呼び出されます：
+
+- イベント単位の状態（カウンタ、直近のイベント、会話マップなど）をインスタンスに蓄積しないでください。同時実行のコールバックが互いを上書きします。
+- コールバックは現在の `EventContext` からのみデータを取得し、コンテキストやそのフィールドを呼び出しをまたいで再利用しないでください。
+- 呼び出しをまたいで保持するデータは Host ストレージに置き、キーに installation の識別子とイベントに関連する識別子（Workspace、会話など）を含めてください。
+- installation 単位でプロセス内状態を保持する場合は、`on_installation_revoked(binding)` で解放してください。
+
+完全な仕様は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 ## 次のステップ
 
 イベントリスナーの基本情報を学びました。次は:

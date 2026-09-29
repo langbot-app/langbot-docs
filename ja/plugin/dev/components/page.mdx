@@ -236,6 +236,17 @@ await langbot.api('/entries', { id: '...' }, 'DELETE');
 
 完全なサンプルコードは[FAQManagerプラグイン](https://github.com/langbot-app/langbot-plugin-demo/tree/main/FAQManager)を参照してください。
 
+## 1 つの installation、複数の用途
+
+同じ Page は**複数のページリクエスト**から呼び出されます（同じ installation の別々のリクエスト、別々の Workspace）：
+
+- 前回のリクエストのデータをインスタンスに残さないでください。エンドポイント、メソッド、body、現在の installation の情報は、毎回現在の `PageRequest` / binding から取得します。
+- ページのデータは常に installation スコープの Host ストレージに置いてください。`self.plugin` はプロセスレベルの共有オブジェクトであり、テナントデータを保存できません。
+- 別々の Workspace のリクエストは同じ Page インスタンスを共有するため、インスタンスフィールドの使用が交錯します。リクエストをまたいで保持するデータは Host ストレージに置いてください。
+- installation 単位でプロセス内キャッシュを保持する場合は、`on_installation_revoked(binding)` で解放してください。
+
+完全な仕様は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 ## 注意事項
 
 - ページは`sandbox="allow-scripts allow-forms"`のiframe内で実行され、ポップアップを開いたり親ページをナビゲートすることはできません

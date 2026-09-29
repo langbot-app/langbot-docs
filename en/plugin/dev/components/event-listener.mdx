@@ -99,6 +99,17 @@ class EventContext(pydantic.BaseModel):
 
 Event registration is implemented through the `@self.handler` decorator, with the decorator parameter being the event type. All monitorable events are defined in `langbot_plugin.api.entities.builtin.events`.
 
+## One installation, many usages
+
+The same event listener is called **concurrently by several Workspaces and several events**:
+
+- Never accumulate state per event on the instance (counters, last event, conversation maps); concurrent callbacks will overwrite each other.
+- A callback takes its data only from the current `EventContext`; never reuse a context or its fields across calls.
+- Data that must survive calls belongs in Host storage, keyed with the installation identity and the event-related identity (Workspace, conversation, and so on).
+- If you keep per-installation process-local state, release it in `on_installation_revoked(binding)`.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## What's Next
 
 You have learned the basic information about event listeners. Next, you can:

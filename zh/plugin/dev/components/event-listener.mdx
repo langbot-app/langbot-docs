@@ -99,6 +99,17 @@ class EventContext(pydantic.BaseModel):
 
 事件注册通过装饰器`@self.handler`实现，装饰器参数为事件类型。可监听的事件均在`langbot_plugin.api.entities.builtin.events`中定义。  
 
+## 一个安装，多份用法
+
+同一个事件监听器会被**多个工作区、多个事件并发调用**：
+
+- 不要在实例上按事件累积状态（计数、最近事件、会话映射等），并发回调会互相覆盖。
+- 回调只从当前 `EventContext` 取数据，不要跨调用复用上下文或其字段。
+- 需要跨调用保留的数据放 Host 存储，键包含安装标识与事件相关的身份（工作区、会话等）。
+- 如果按安装维护了进程内状态，请在 `on_installation_revoked(binding)` 中释放。
+
+以上约束的完整说明见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
 ## 接下来做什么
 
 您已经了解了事件监听器的基本信息，接下来可以：

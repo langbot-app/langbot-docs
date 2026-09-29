@@ -190,6 +190,18 @@ After installing the plugin, add this configuration under **Plugin processor** o
 
 Plugin subscriptions run independently of Agent/Pipeline routes. An event can trigger multiple processors, and one failure does not prevent the others from running. Bots using the same configuration share settings and runtime state; create separate configurations for different settings. Expose optional behavior, such as replies, through component configuration to avoid duplicate responses.
 
+## One installation, many usages
+
+A Workspace installs each plugin once, but that installation is reused by **several processors** (Agents and Pipelines). A Runner must keep their data apart on its own:
+
+- `ctx.state.*` is already per-processor: scopes carry `binding_identity` (derived from the Agent UUID), so different processors of the same installation never overwrite each other.
+- The platform storage key is `(instance, Workspace, owner type, plugin, key)` and carries **no processor dimension**; any key you write into Host storage or caches yourself must therefore also include the processor or conversation identity.
+- `RunnerContext` (`ctx`) is valid only for a single run. Never keep it or its fields on the instance for reuse across calls; persist session state that must survive calls via `ctx.state_get()` / `ctx.state_set()`.
+- Several processors share the same Runner instance, so never accumulate the current run's data on instance fields. If your runner must hold cross-call state in-process (for example a long-lived external session process), do not declare shared runtime — stay dedicated.
+- If you keep per-installation process-local caches, release them in `on_installation_revoked(binding)`.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## Next Steps
 
 - See the [`RunnerContext` API reference](/en/plugin/dev/apis/agent-run#runner).

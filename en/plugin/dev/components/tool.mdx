@@ -169,6 +169,17 @@ Now execute the command `lbp run` in the plugin directory to start debugging. Co
 
 <img width="600" src="/images/zh/plugin/dev/components/tool_use_in_chat.png" />
 
+## One installation, many usages
+
+A single Tool is called by **several processors and conversations** (one event can trigger several plugin processors):
+
+- Read config per call (`self.get_plugin_config()` or `ctx.config`); never read it in `initialize()` and cache it on the instance.
+- Never leave call arguments, results or conversation data on instance fields or module-level variables; take the conversation identity from the current call's `session` / `query_id`.
+- Concurrent calls share the same instance, so instance fields get interleaved writes. Data that must survive calls belongs in Host storage, keyed with the corresponding processor or conversation identity.
+- If you keep per-installation process-local caches, release them in `on_installation_revoked(binding)`.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## What's Next
 
 You have learned the basic usage of tools. Next, you can:

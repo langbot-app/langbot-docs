@@ -93,7 +93,45 @@ A declaration is an application, not approval. It grants no badge and does not c
 - Do not read and cache installation configuration in `initialize()`.
 - Reach storage, files, credentials, logs, models and other platform capabilities through the SDK Host APIs. Authority is resolved per call; do not cache it yourself.
 - Durable tenant state belongs in Host services. Runners use `ctx.state_get()` / `ctx.state_set()` and friends (this requires `ctx.context.available_apis.state` to be `true`). In-process caches may hold artifact-level public data only; if you must cache tenant data, the key has to include the complete installation identity and must be cleaned up when the installation is removed.
-- Tenant-bearing background tasks and threads are forbidden. Once a handler returns, that invocation's context and run-associated calls are no longer valid.
+- Do not start tenant-bearing background tasks or threads: the SDK does **not** track ownership of work you create. If you must detach work, keep a registry keyed by the installation binding and stop it in `on_installation_revoked()`. Once a handler returns, that invocation's context and run-associated calls are no longer valid.
+
+### One installation, many usages
+
+A Workspace installs each plugin once, but that single installation is reused by **several product objects**:
+
+| Component kind | What reuses it | What isolates it |
+| --- | --- | --- |
+| Runner in an Agent or Pipeline | every processor | `ctx.state.*` is already per-processor (scopes carry `binding_identity`, derived from the Agent UUID) |
+| KnowledgeEngine / Parser behind a knowledge base | every knowledge base | **your plugin must isolate by knowledge-base ID itself** |
+| Tool / Command / EventListener / Page | several processors, conversations or page requests | read per call; never accumulate on the instance |
+
+The platform storage key is `(instance, Workspace, owner type, plugin, key)` and carries **no processor or knowledge-base dimension**. So whenever your plugin persists or caches anything, it must put the product object's identity into the key:
+
+- **Config**: read per call (`ctx.config`, or the task-local `self.get_plugin_config()`); never cache it on the instance.
+- **Persistence**: keys must include the product identity (processor identity / knowledge-base ID / conversation identity).
+- **Process-local caches**: keys must include both the full installation binding **and** the product identity, and must be released when the installation is revoked (below).
+- **Locks and fences**: key them by `(installation, product object)`. **A failure in one processor or knowledge base must not block the others of the same installation.**
+- **Failure grading**: only a dispatched mutation with an unknown outcome should enter a state that needs manual reconciliation; deterministic validation errors and pre-dispatch cancellation must not affect later calls.
+- **Logs and telemetry**: a diagnostic failure must not affect the work, and tenant data must not be written into a process-wide singleton.
+
+### When an installation is revoked
+
+Under shared placement one object graph serves every installation of the artifact, so **revoking one installation does not destroy it**. The plugin must release binding-keyed process-local state itself:
+
+```python
+class MyPlugin(BasePlugin):
+    def __init__(self) -> None:
+        super().__init__()
+        self._caches: dict[str, Cache] = {}
+
+    async def on_installation_revoked(self, binding) -> None:
+        self._caches.pop(binding.installation_uuid, None)
+```
+
+- **Fires for** uninstall, disable, Workspace removal and upgrade (the superseded binding is revoked). It runs only under shared placement; dedicated workers are shut down, so their process-local state disappears with the process.
+- **There is no active invocation**, so Host APIs (storage, config, binding lookups) are unavailable — you can only release process-local state, and the installation is identified by the argument.
+- Exceptions are logged and **never block revocation**.
+- It requires an SDK version that provides `BasePlugin.on_installation_revoked`; on older versions the hook is simply never called.
 
 ### Allowed / forbidden
 

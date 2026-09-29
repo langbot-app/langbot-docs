@@ -253,6 +253,18 @@ using_rerank = self.config.get('using_rerank', False)
 search_mode = self.config.get('search_mode', 'embedding')
 ```
 
+## 1 つの installation、複数の用途
+
+1 つのナレッジリトリーバーは**複数のナレッジベース**から使われ、プラットフォームのストレージキー `(instance, Workspace, owner type, plugin, key)` にはナレッジベースの次元がありません：
+
+- 検索に使うキャッシュ、インデックス、中間結果は**ナレッジベース ID** で分離し、キーにナレッジベース ID を含めてください。インスタンスに置かないでください。
+- 検索のロックと「要対账」状態は `(installation, ナレッジベース)` 単位で記録してください。あるナレッジベースの検索失敗が、同じ installation の他のナレッジベースの検索を利用不能にしてはいけません。
+- `RetrievalContext` は 1 回の検索でのみ有効です。インスタンスフィールドに保存して呼び出しをまたいで再利用しないでください。
+- 呼び出しをまたいで保持するナレッジベースのデータは Host ストレージに置き、キーに installation の識別子とナレッジベース ID の両方を含めてください。
+- installation 単位で接続、インデックス、その他のプロセス内状態をキャッシュする場合は、`on_installation_revoked(binding)` で解放してください。
+
+完全な仕様は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 ## リトリーバーのテスト
 
 作成後、プラグインディレクトリでコマンド`lbp run`を実行してデバッグを開始します。その後、LangBotで:
