@@ -1,9 +1,9 @@
 ---
 title: "Data Collection Policy"
-description: "Existing telemetry, Beta diagnostics, retention and opt-out controls"
+description: "Optional telemetry, execution observations and opt-out controls"
 ---
 
-LangBot sends telemetry to the configured LangBot Space service (by default `https://space.langbot.app`) to understand usage and improve reliability. **Existing product telemetry and Beta diagnostics are separate data streams.** This page describes Core 4.11.0-beta.2 diagnostics schema v1; it does not change existing product analytics settings.
+LangBot sends telemetry to the configured LangBot Space service (by default `https://space.langbot.app`) to understand usage and improve reliability. **Telemetry is enabled by default and can be disabled.** Execution observations use existing telemetry rather than a separate Beta diagnostics producer.
 
 ## Existing product telemetry
 
@@ -17,71 +17,37 @@ When enabled, the existing query path can send:
 | Errors | The legacy `error` field can contain a raw traceback, including exception text |
 | Managed runtime activity | `runtime_instance_id` on managed SaaS queries refreshes idle-timeout activity; it is not stored in the analytics event record |
 
-Feature counters do not intentionally include tool arguments/results, retrieved text or sandbox code/output. **However, legacy exception text and user-defined model, skill or MCP names may contain sensitive information. The new content-free diagnostics rules do not sanitize this legacy stream.** Do not treat existing telemetry as guaranteed content-free.
+Feature counters do not intentionally include tool arguments/results, retrieved text or sandbox code/output. **However, legacy exception text and user-defined model, skill or MCP names may contain sensitive information. The execution-record content restrictions do not sanitize this legacy stream.** Do not treat existing telemetry as guaranteed content-free.
 
 A Workspace heartbeat is sent shortly after startup and daily for active Workspaces. It includes deployment platform, database/vector-database kinds, sandbox configuration and availability, enabled adapter types and resource counts, rather than resource contents or connection details.
 
 Optional in-app surveys send the survey ID, submitted answers, instance ID, version and completion/dismissal status. Survey answers are user-provided content, not Beta diagnostics.
 
-## Beta diagnostics v1 — 4.11.0-beta.2
+## Execution telemetry
 
-Beta diagnostics are **on by default in Beta builds only**. Stable, alpha and release-candidate builds do not enable this producer; this release has no stable opt-in. There is no additional setup, consent wizard or required testing step. Collection runs in the background with bounded queues, batches, timeouts and retries; unavailable diagnostics services must not hold up normal bot use. Queue limits and network failures can cause diagnostic records to be lost.
+Execution observations cover platform events, routing, Pipeline / Agent / plugin event processors and platform APIs. Fields include code-defined operation identifiers, adapter and runner types, processing mode, outcome, counts, first/last observation times, instance and Workspace identifiers, version and a synthetic-execution flag. Core aggregates bounded counters in memory and sends them in background tasks; Space performs coverage analysis.
 
-Diagnostics record only allowlisted, content-free metadata from instrumented operations:
+These execution records exclude messages, prompts, model replies, platform user/group IDs, tool/API arguments or results, credentials and raw exception tracebacks. Instance and Workspace identifiers may be associated with deployments or accounts. These content restrictions apply to execution records, not to the legacy query telemetry described above.
 
-- Core/SDK/public plugin or runner versions, build revision, deployment/environment categories and supported/configured capabilities.
-- Operation and event categories, processor type, execution stage, observed outcome, counts and duration.
-- Fixed reason codes, error categories and fingerprints built from code identifiers, **not exception messages or raw tracebacks**.
-- Independent `instance_id` and optional `workspace_uuid`, plus opaque event/trace/span/run identifiers to correlate diagnostic steps. Instance-level events may have no Workspace.
-- Sender health counters such as generated, acknowledged, retried and dropped records.
-
-**These are pseudonymous identifiers, not anonymous data.** An instance and a Workspace are distinct identity dimensions; neither is a substitute for the other. Identifiers may be associated with an account or deployment. “Unauthenticated reporter” does not mean unidentifiable.
-
-### Excluded from Beta diagnostic records
-
-No messages, prompts, model replies, raw platform events, tool/API arguments or results, form values, file/media contents, filenames or local paths, raw URLs/query strings, credentials, platform user/group IDs, user-defined resource names, or raw exceptions/tracebacks. Public component IDs and fixed operation categories are used instead of arbitrary text. Network infrastructure necessarily sees a sender's IP address for delivery and abuse prevention; this is not a promise that all service access logs are IP-free.
-
-Diagnostics help find compatibility failures and regressions in observed paths. They are separate from query usage, retention/funnel statistics, account bindings and managed runtime idle-timeout activity. A platform API accepting a request does **not** prove a user received or read a message. Missing records or an untested path do not demonstrate success.
+Connection failures, timeouts and server errors do not block normal operations. Failure details are logged only at DEBUG level. Queues are bounded and records may be lost during failures. Observations support analysis; a successful platform API response does not prove that a user read a message.
 
 ## Storage and retention
 
-Data sent to the default service is stored on servers operated for LangBot Space. Beta diagnostics can be read by administrators, members explicitly authorized for telemetry access, and authorized service API clients. Ordinary Workspace membership does not itself grant this access. **Server default cleanup thresholds are 30 days for diagnostic detail and 90 days for aggregates**, with configuration bounded by those limits. Records become eligible for deletion at these thresholds; a scheduled worker removes them in bounded batches. Backlogs or service interruptions can delay removal, so these are not guarantees of deletion at an exact hour. These periods apply to the new diagnostic stream, not retroactively to existing product telemetry, surveys, service logs or account records. Existing telemetry continues under its existing product-analytics retention settings.
+Data is stored by the configured Space service. Raw execution records are periodically removed in bounded batches using a 30-day retention window; backlogs or service interruptions can delay deletion. This does not change retention for legacy query telemetry, surveys, accounts or service logs. Coverage analysis is restricted to authorized telemetry management users or service clients.
 
-Opting out stops future diagnostic sends and clears local pending diagnostic records once the setting takes effect. It does **not** delete records already received by the server. For historical deletion, contact [hello@langbot.app](mailto:hello@langbot.app) or your Space administrator; active administrators and authorized service API clients can delete diagnostics scoped to an instance and, where applicable, a Workspace. Telemetry read permission alone does not permit deletion or error-status changes. Share identifiers privately, not in a public issue.
+Opting out stops future reporting but does not delete existing server records. For historical data requests, contact [hello@langbot.app](mailto:hello@langbot.app) or your Space administrator.
 
-## Opt-out controls
+## Disabling telemetry
 
-To disable only Beta diagnostics, update the existing `space` section in `data/config.yaml`, preserving your other settings, then restart LangBot:
-
-```yaml
-space:
-  disable_beta_diagnostics: true
-```
-
-This does not change query telemetry, heartbeat, survey or other product analytics settings.
-
-To disable Core telemetry, including Beta diagnostics, use the master switch and restart:
+Set the following in the existing `space` section of `data/config.yaml`, preserve other settings, and restart LangBot:
 
 ```yaml
 space:
   disable_telemetry: true
 ```
 
-The master switch takes precedence over the Beta setting. It also disables the existing query/heartbeat sends and survey fetching. Use YAML booleans (`true`/`false`), not quoted strings. If your deployment sets `SPACE__DISABLE_BETA_DIAGNOSTICS` or `SPACE__DISABLE_TELEMETRY`, those environment values override the file at startup; update or remove them too, then restart the process (recreate a container when changing its environment). Diagnostics also require a configured `space.url`; local-version builds such as `4.11.0b2+local` do not enable the producer. These controls do not disable the bot or alter the privacy settings of your messaging platforms, plugins, model providers or other online services.
+This switch disables query statistics, heartbeat and execution telemetry, as well as survey fetching. Use an unquoted YAML boolean. To restore the default, set it to `false` and restart.
 
-## Optional Beta test checklist — 4.11.0-beta.2 / v1
+If `SPACE__DISABLE_TELEMETRY` is set in your deployment, it overrides the file at startup; update or remove it too. Recreate containers when changing their environment. In Cloud, the instance operator controls this setting for every Workspace in the instance. It does not disable the bot or change privacy settings of messaging platforms, model providers or plugins.
 
-Use a test bot, test Workspace and non-sensitive sample data. Only test capabilities your installed adapter and plugins support. This checklist is optional; diagnostics do not automatically run these actions.
-
-| Scenario ID | What to check |
-|---|---|
-| `B2-01` | Start/restart the installation; check platform and Runtime connections and one normal reply. |
-| `B2-02` | Trigger a matching and non-matching route; where configured, test Pipeline, Agent and plugin event processors separately. |
-| `B2-03` | Exercise a configured tool/plugin/MCP call and a reply; check the actual destination and content yourself. |
-| `B2-04` | In a safe test environment, cancel a run or reproduce a known failure; confirm the bot remains usable. |
-| `B2-05` | If supported, test streaming and an interaction callback; check partial replies, timeout and resume behavior. |
-| `B2-06` | If checking diagnostics controls, disable diagnostics, restart and confirm normal bot use. A maintainer can separately verify no new diagnostic requests and that pending records are cleared. |
-
-Do not kick, mute, delete or otherwise modify production users/data just to create diagnostic samples. Report the scenario ID, exact Core/SDK versions, platform, approximate UTC time, expected versus actual behavior and whether it was a real platform or WebUI debug test. Remove secrets and personal data from any manually submitted logs/screenshots. After a fix, repeat the same scenario on the new build. Diagnostic coverage supplements these checks; it does not replace them.
-
-*Policy version: 1.5 · Last updated: September 15, 2026*
+See [System Settings](../deploy/settings).

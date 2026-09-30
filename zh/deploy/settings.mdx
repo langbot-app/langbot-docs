@@ -433,3 +433,20 @@ space:
 <Note>
 Docker 部署中，统一把 `BOX__*` 环境变量设置在 `langbot` 服务上。LangBot 会通过 INIT RPC 将 Box 配置传给 `langbot_box`；直接在 `langbot_box` 服务上设置 `LANGBOT_BOX_*` 或 `BOX__*` 不会被读取。
 </Note>
+
+## 可选遥测
+
+遥测默认开启，可以关闭。
+
+在 `data/config.yaml` 的现有 `space` 节点中设置以下值，保留其他配置，然后重启 LangBot：
+
+```yaml
+space:
+  disable_telemetry: true
+```
+
+此开关统一关闭查询统计、心跳和功能执行遥测，也会关闭问卷获取。使用 YAML 布尔值，不要加引号。恢复默认开启状态时，改回 `false` 并重启。
+
+如果部署设置了 `SPACE__DISABLE_TELEMETRY`，该环境变量会在启动时覆盖文件设置；请同时修改或移除它。容器环境变量改变后需要重新创建容器。Cloud 由实例运维方配置，对该实例所有工作区生效。此设置不影响机器人正常运行，也不修改消息平台、模型提供商或插件自身的隐私设置。
+
+参见[数据收集政策](../insight/data-collection-policy)。
