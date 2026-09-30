@@ -449,4 +449,16 @@ space:
 
 如果部署设置了 `SPACE__DISABLE_TELEMETRY`，该环境变量会在启动时覆盖文件设置；请同时修改或移除它。容器环境变量改变后需要重新创建容器。Cloud 由实例运维方配置，对该实例所有工作区生效。此设置不影响机器人正常运行，也不修改消息平台、模型提供商或插件自身的隐私设置。
 
+### 单事件执行链路
+
+执行遥测还会计抽样上报单事件链路（一个入站平台事件从来源平台、路由、处理到由此触发的平台 API 调用的全过程）。可在同一 `space` 节点调整抽样：
+
+```yaml
+space:
+  execution_trace: sampled    # off | failures | sampled | all
+  execution_trace_sample: 20  # sampled 模式下：每 N 条成功链路保留一条
+```
+
+`failures` 只保留包含失败、取消或超时阶段的链路。`off` 关闭链路上报，窗口计数不受影响。WebUI 调试执行始终保留，并继续标记为模拟执行。链路的保留期限与功能执行记录一致，为 30 天。
+
 参见[数据收集政策](../insight/data-collection-policy)。

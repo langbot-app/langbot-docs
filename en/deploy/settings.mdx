@@ -500,4 +500,16 @@ This switch disables query statistics, heartbeat and execution telemetry, as wel
 
 If `SPACE__DISABLE_TELEMETRY` is set in your deployment, it overrides the file at startup; update or remove it too. Recreate containers when changing their environment. In Cloud, the instance operator controls this setting for every Workspace in the instance. It does not disable the bot or change privacy settings of messaging platforms, model providers or plugins.
 
+### Per-event execution chains
+
+Execution telemetry also reports sampled per-event chains (one inbound platform event from its source through routing and processing to the platform API calls it caused). Tune the sampling in the same `space` section:
+
+```yaml
+space:
+  execution_trace: sampled    # off | failures | sampled | all
+  execution_trace_sample: 20  # with 'sampled': keep every N-th successful chain
+```
+
+`failures` keeps only chains that contain a failed, cancelled or timed-out stage. `off` disables chains while window counters continue. WebUI debug runs are always kept and remain flagged as synthetic. Chains share the 30-day retention of execution records.
+
 See [Data Collection Policy](../insight/data-collection-policy).

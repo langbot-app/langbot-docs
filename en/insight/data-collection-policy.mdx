@@ -29,6 +29,12 @@ Execution observations cover platform events, routing, Pipeline / Agent / plugin
 
 These execution records exclude messages, prompts, model replies, platform user/group IDs, tool/API arguments or results, credentials and raw exception tracebacks. Instance and Workspace identifiers may be associated with deployments or accounts. These content restrictions apply to execution records, not to the legacy query telemetry described above.
 
+### Per-event execution chains
+
+A sampled subset of these records traces one inbound event end to end: an opaque random trace identity, the observed stages in order (platform event → routing decision → Pipeline / Agent / plugin event processor → platform API calls), each stage's outcome, the routing target identity, the Runner run identity when a Runner executed the event, and why the chain closed. Stage fields are the same code-defined identifiers as above; a routing target is reported as `type:uuid`, never as a user-defined rule name. Core keeps a bounded number of stages per chain and a bounded number of chains in memory, then drops overflow.
+
+Chains are sampled with `space.execution_trace`: `off`, `failures` (chains containing a failed, cancelled or timed-out stage), `sampled` (the default: those chains plus every N-th successful one, N = `space.execution_trace_sample`) or `all`. WebUI debug runs are always kept and remain flagged as synthetic, so they stay out of real-execution statistics.
+
 Connection failures, timeouts and server errors do not block normal operations. Failure details are logged only at DEBUG level. Queues are bounded and records may be lost during failures. Observations support analysis; a successful platform API response does not prove that a user read a message.
 
 ## Storage and retention
