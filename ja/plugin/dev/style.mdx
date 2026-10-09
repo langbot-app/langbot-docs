@@ -15,3 +15,5 @@ logger.info('This is an info message')  # logger.info を使用して info レ�
 logger.warning('This is a warning message')
 logger.error('This is an error message')
 ```
+
+認証プラグインでは、生のプロセスログを 1 つの Workspace に安全に帰属できないため、運用診断専用です。Runner は `RunnerContext.log()` で installation-scoped なテナント表示ログを記録できます。その他のコンポーネントには汎用テナントログ API がまだないため、生のプロセスログは運用者専用です。モジュールグローバルなバックグラウンド処理から設定、認証情報、リクエストデータを出力してはいけません。

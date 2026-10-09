@@ -2,6 +2,10 @@
 title: "コンポーネント: イベントリスナー"
 ---
 
+<Info>
+このコンポーネントはパイプラインの処理を拡張します。メッセージ受信やメンバー参加などの Bot イベントを処理する場合は、[イベントプロセッサー](/ja/plugin/dev/components/runner)を参照してください。
+</Info>
+
 LangBotのパイプラインは実行時にイベントを生成し、プラグインがフックして処理できるようにします。各プラグインは1つのイベントリスナー(components/event_listener/default.yaml)のみを持つことができますが、その中で任意の数のイベントを登録できます。
 
 ## イベントリスナーコンポーネントの追加
@@ -95,9 +99,21 @@ class EventContext(pydantic.BaseModel):
 
 イベント登録は`@self.handler`デコレータを通じて実装され、デコレータのパラメータはイベントタイプです。監視可能なすべてのイベントは`langbot_plugin.api.entities.builtin.events`で定義されています。
 
+## 1 つの installation、複数の用途
+
+同じイベントリスナーは**複数の Workspace、複数のイベントから同時に**呼び出されます：
+
+- イベント単位の状態（カウンタ、直近のイベント、会話マップなど）をインスタンスに蓄積しないでください。同時実行のコールバックが互いを上書きします。
+- コールバックは現在の `EventContext` からのみデータを取得し、コンテキストやそのフィールドを呼び出しをまたいで再利用しないでください。
+- 呼び出しをまたいで保持するデータは Host ストレージに置き、キーに installation の識別子とイベントに関連する識別子（Workspace、会話など）を含めてください。
+- installation 単位でプロセス内状態を保持する場合は、`on_installation_revoked(binding)` で解放してください。
+
+完全な仕様は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 ## 次のステップ
 
 イベントリスナーの基本情報を学びました。次は:
 
-- ドキュメント[パイプラインイベント](/en/plugin/dev/apis/pipeline-events)で`監視可能なイベントのリスト`と`イベントコンテキストAPI`を確認してください
-- [プラグイン共通API](/en/plugin/dev/apis/common)を確認してください
+- [パイプラインイベント](/ja/plugin/dev/apis/pipeline-events)でイベントの種類とフィールドを確認します。
+- 完全な [`EventContext` API リファレンス](/ja/plugin/dev/apis/agent-run#eventlistener)を確認します。
+- [LangBot API](/ja/plugin/dev/apis/common)を確認します。

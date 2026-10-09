@@ -4,7 +4,7 @@ title: "LangBot Plugins"
 
 LangBot is composed of various internal components such as Large Language Model tools, commands, messaging platform adapters, LLM requesters, and more. To meet extensibility and flexibility requirements, we have implemented a production-grade plugin system.
 
-Each plugin runs in an independent process, managed uniformly by the Plugin Runtime.
+Plugins are managed uniformly by the Plugin Runtime. Most plugins use a dedicated runtime; a release with a valid artifact-bound certificate may qualify for [cross-tenant shared execution](/en/plugin/certified-plugins) in LangBot Cloud. Review alone is not certification.
 
 <img width="600" src="/images/zh/plugin/dev/plugin_system_arch.png" />
 

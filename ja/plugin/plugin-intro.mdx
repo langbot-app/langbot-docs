@@ -4,7 +4,7 @@ title: "LangBotプラグイン"
 
 LangBotは、大規模言語モデルツール、コマンド、メッセージングプラットフォームアダプター、LLMリクエスターなど、さまざまな内部コンポーネントで構成されています。拡張性と柔軟性の要件を満たすために、本番環境グレードのプラグインシステムを実装しました。
 
-各プラグインは独立したプロセスで実行され、Plugin Runtimeによって統一的に管理されます。
+プラグインは Plugin Runtime により統一して管理されます。多くのプラグインは専用ランタイムを使用し、正確な artifact の有効な署名が確認されたリリースのみ、LangBot Cloud で[ワークスペース間の共有資格](/ja/plugin/certified-plugins)を得られます。レビューだけでは認証になりません。
 
 <img width="600" src="/images/zh/plugin/dev/plugin_system_arch.png" />
 

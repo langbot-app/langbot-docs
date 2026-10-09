@@ -207,8 +207,20 @@ yield CommandReturn(
 
 具体的な戻り値については、`CommandReturn`の定義を参照してください: [langbot_plugin.api.entities.builtin.command.context.CommandReturn](https://github.com/langbot-app/langbot-plugin-sdk/tree/main/src/langbot_plugin/api/entities/builtin/command/context.py)
 
+## 1 つの installation、複数の用途
+
+1 つのコマンドは**複数の会話から同時に**起動されます：
+
+- 設定は呼び出しごとに読み取ってください。`initialize()` で読み取ってインスタンスにキャッシュしないでください。
+- コマンド引数、戻り値、会話データをインスタンスフィールドやモジュールレベルの変数に残さないでください。`ExecuteContext` は今回の実行でのみ有効です。
+- 同時起動ではインスタンスフィールドの書き込みが交錯します。「現在の会話」のような状態をそこに保存しないでください。呼び出しをまたいで保持するデータは Host ストレージに置き、キーに会話の識別子を含めてください。
+- installation 単位でプロセス内キャッシュを保持する場合は、`on_installation_revoked(binding)` で解放してください。
+
+完全な仕様は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 ## 次のステップ
 
 コマンド登録とコマンド実行の基本情報を学びました。次は:
 
-- [プラグイン共通API](/en/plugin/dev/apis/common)を確認してください
+- 完全な [`ExecuteContext` API リファレンス](/ja/plugin/dev/apis/agent-run#command)を確認します。
+- [LangBot API](/ja/plugin/dev/apis/common)を確認します。

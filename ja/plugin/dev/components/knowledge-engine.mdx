@@ -468,6 +468,18 @@ async def get_knowledge_file_stream(self, storage_path: str) -> bytes:
 file_bytes = await self.plugin.get_knowledge_file_stream(context.file_object.storage_path)
 ```
 
+## 1 つの installation、複数の用途
+
+1 つの RAG エンジンは**複数のナレッジベース**から同時に使われ、プラットフォームのストレージキー `(instance, Workspace, owner type, plugin, key)` にはナレッジベースの次元がありません：
+
+- 永続化とキャッシュのキーには**ナレッジベース ID** を含めてください。含めないと、別々のナレッジベースのベクトルやドキュメント状態が互いを上書きします。
+- ロックと「要対账」状態は `(installation, ナレッジベース)` 単位で記録してください。**1 つのナレッジベースの取り込み失敗が、同じ installation の他のナレッジベースの取り込みや検索を遮断してはいけません。**
+- 手動対账が必要な状態に入るのは、送出済みで結果不明の変更だけにしてください。決定的な検証エラーや送出前のキャンセルは後続の呼び出しに影響させないでください。
+- テレメトリや診断の失敗は業務に影響させないでください。ログや送信の失敗で取り込みや検索を中断せず、テナントデータをプロセス全体のシングルトンに書き込まないでください。
+- installation 単位でプロセス内キャッシュや状態を保持する場合は、`on_installation_revoked(binding)` で解放してください。
+
+完全な仕様は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 ## RAGエンジンのテスト
 
 作成後、プラグインディレクトリでコマンド`lbp run`を実行してデバッグを開始します。その後、LangBotで:

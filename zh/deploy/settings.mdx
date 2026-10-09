@@ -433,3 +433,48 @@ space:
 <Note>
 Docker 部署中，统一把 `BOX__*` 环境变量设置在 `langbot` 服务上。LangBot 会通过 INIT RPC 将 Box 配置传给 `langbot_box`；直接在 `langbot_box` 服务上设置 `LANGBOT_BOX_*` 或 `BOX__*` 不会被读取。
 </Note>
+
+## 可选遥测
+
+遥测默认开启，可以关闭。
+
+在 `data/config.yaml` 的现有 `space` 节点中设置以下值，保留其他配置，然后重启 LangBot：
+
+```yaml
+space:
+  disable_telemetry: true
+```
+
+此开关统一关闭产品遥测（包括心跳和执行记录），并关闭问卷获取。使用 YAML 布尔值，不要加引号。恢复默认开启状态时，改回 `false` 并重启。Cloud 的 Plugin Runtime 运维健康上报由独立的 `plugin.runtime_ops.enabled` 控制。
+
+如果部署设置了 `SPACE__DISABLE_TELEMETRY`，该环境变量会在启动时覆盖文件设置；请同时修改或移除它。容器环境变量改变后需要重新创建容器。Cloud 由实例运维方配置，对该实例所有工作区生效。此设置不影响机器人正常运行，也不修改消息平台、模型提供商或插件自身的隐私设置。
+
+### 单事件执行链路
+
+4.11 当前默认对符合上报条件的执行全量记录，包括平台事件、路由、Pipeline / Agent / 插件事件处理器，以及由此触发的平台 API 和工具调用。每个完成的节点生成一条记录，执行结束再生成一条结束记录，由 Space 重组链路。以下为同一 `space` 节点下的默认配置，修改后重启生效：
+
+平台事件未命中业务路由，或被 `discard` 规则忽略且没有匹配的插件订阅时，整条事件不上报。本地日志和监控保留原有行为。插件订阅匹配、有效交互恢复及独立 WebUI/API/Pipeline 调用仍可上报；命中后的目标不可用、运行失败或 Pipeline 内部过滤也保留。该过滤在采样之前执行，Cloud 的 `all` 和失败兜底都不能绕过它，需要升级 Core 才能生效。
+
+```yaml
+space:
+  execution_trace: all        # off | failures | sampled | all
+  execution_trace_sample: 20  # sampled 模式下：按事件哈希保留约 1/N 的成功执行
+  telemetry_flush_seconds: 180  # 执行记录缓冲区的刷新间隔，单位为秒
+```
+
+社区版的模式行为如下：
+
+| 模式 | 上报行为 |
+|---|---|
+| `all` | 默认值，记录所有符合上报条件的执行的节点和结束记录 |
+| `sampled` | 按事件标识的稳定哈希决定是否保留，同一次执行共享采样决定；未命中的失败执行仍上报结束记录，但不追补节点 |
+| `failures` | 普通执行不保留节点，只上报失败、取消、超时或有链路失败原因的结束记录 |
+| `off` | 不上报执行节点和结束记录，也没有独立的窗口计数继续上报；心跳仍由 `disable_telemetry` 控制 |
+
+WebUI 调试执行在 `all`、`sampled` 和 `failures` 下均保留并带有调试标记；`off` 或 `disable_telemetry: true` 会停止其上报。**Cloud 在产品遥测启用时固定使用 `all`，不采用上述采样模式配置**；实例运维方仍可使用总开关关闭产品遥测。
+
+`execution_trace_sample` 接受 1–100000 的整数；`telemetry_flush_seconds` 接受 1–86400 的整数。无效值分别回退为 20 和 180，无效的模式回退为 `all`。抽样不是严格按顺序每 N 条保留一条。
+
+每次刷新最多发送 128 条，缓冲最多 512 条；发送失败保留重试，缓冲满时丢弃最旧记录，因此全量模式也不保证完整送达。活跃工作区在启动约 30 秒后首次发送心跳，此后普通部署每天一次，Cloud runtime 每 5 分钟一次。执行原始记录按 30 天窗口分批清理，积压可能延迟删除。
+
+参见[数据收集政策](../insight/data-collection-policy)。

@@ -207,8 +207,20 @@ yield CommandReturn(
 
 具体的返回值请参考`CommandReturn`的定义：[langbot_plugin.api.entities.builtin.command.context.CommandReturn](https://github.com/langbot-app/langbot-plugin-sdk/tree/main/src/langbot_plugin/api/entities/builtin/command/context.py)
 
+## 一个安装，多份用法
+
+一个命令会被**多个会话并发触发**：
+
+- 配置每次调用读取，不要在 `initialize()` 中读取后缓存到实例。
+- 不要把命令参数、返回值或会话数据留在实例字段或模块级变量上；`ExecuteContext` 只在本次执行内有效。
+- 并发触发意味着实例字段会被交织写入，不要用它保存「当前会话」之类的状态；需要跨调用保留的数据放 Host 存储，键包含会话身份。
+- 如果按安装维护了进程内缓存，请在 `on_installation_revoked(binding)` 中释放。
+
+以上约束的完整说明见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
 ## 接下来做什么
 
 您已经了解了命令注册和命令执行的基本信息，接下来可以：
 
-- 查看[插件通用 API](/zh/plugin/dev/apis/common)
+- 查看完整的 [`ExecuteContext` 上下文 API](/zh/plugin/dev/apis/agent-run#command)
+- 查看 [LangBot API](/zh/plugin/dev/apis/common)

@@ -30,6 +30,8 @@ execution:
     attr: HelloPlugin  # 変更しないでください
 ```
 
+認証を申請し、複数のインストールで 1 つのランタイムを共有する場合は、`execution` 配下に `sharedRuntime` と `componentModel` も宣言します。詳細は[認証プラグインと共有実行](/ja/plugin/certified-plugins)を参照してください。
+
 プラグインの多言語サポートは[RFC 4646](https://datatracker.ietf.org/doc/html/rfc4646)標準に従います。現在サポートされている言語は次のとおりです:
 
 - `en_US` 英語（必須）
@@ -159,6 +161,7 @@ spec:
 ```yaml
 - name: mode
   type: select
+  allow_custom: true
   options:  # ドロップダウンオプション、多言語サポート。
     - name: mode1  # 値、ドロップダウンで小さなテキストとして表示。
       label:  # 表示名、多言語サポート。
@@ -170,6 +173,8 @@ spec:
         zh_Hans: 模式 2
   ...
 ```
+
+`allow_custom: true` を設定すると、プリセットに「カスタム」が追加され、その選択時だけ入力欄が表示されます。保存される値は選択した `name` または入力した文字列であり、「カスタム」というマーカーではありません。ランナーの `spec.config` にも使用できます。
 
 ### type: prompt-editor
 

@@ -248,42 +248,13 @@ class PromptPreProcessing(BaseEventModel):
     """Existing message records for this conversation, can be modified, langbot_plugin.api.entities.builtin.provider.message.Message or langbot_plugin.api.entities.builtin.provider.message.MessageChunk type"""
 ```
 
-## Event Context APIs
+## EventListener context
 
-```python
-...
-        @self.handler(events.PersonMessageReceived)
-        async def handler(event_context: context.EventContext):
-            ...
-```
+Event handlers read the current event through `event_context.event`. See [Context APIs](/en/plugin/dev/apis/agent-run#eventlistener) for the complete `EventContext` properties and methods.
 
-Event processing methods will be passed the `EventContext` object, which contains event context information, and the object has both [Request API](/en/plugin/dev/apis/common) and event context specific APIs. The following is a list of event context specific APIs:
+### Prevent default behavior
 
-### Get Original Event Attributes
-
-`event_context.event` attribute is the original event object, which can get the attributes of the original event. The type is the type of the event being listened to.
-
-For example, when the event being listened to is `GroupMessageReceived`:
-
-```python
-event = event_context.event
-print(event.launcher_type)  # Launcher object type (group)
-print(event.launcher_id)    # Group ID
-print(event.sender_id)      # Sender account ID
-print(event.message_chain)  # Message chain
-```
-
-### Prevent Default Behavior
-
-```python
-def prevent_default(self):
-    """Prevent default behavior"""
-
-# Usage example
-event_context.prevent_default()
-```
-
-Calling this method will prevent the default subsequent behavior of this event, and the pipeline will end directly.
+Calling `event_context.prevent_default()` stops the default handling of the current event. Only these events support it:
 
 <Info>
 Only the following events can prevent default behavior:
@@ -297,14 +268,4 @@ Only the following events can prevent default behavior:
   - NormalMessageResponded
 </Info>
 
-### Prevent Postorder Execution
-
-```python
-def prevent_postorder(self):
-    """Prevent postorder execution"""
-
-# Usage example
-event_context.prevent_postorder()
-```
-
-Calling this method will prevent the subsequent plugins from executing this time.
+Call `event_context.prevent_postorder()` to stop later plugins from handling the current event.

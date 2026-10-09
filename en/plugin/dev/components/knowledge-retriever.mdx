@@ -253,6 +253,18 @@ using_rerank = self.config.get('using_rerank', False)
 search_mode = self.config.get('search_mode', 'embedding')
 ```
 
+## One installation, many usages
+
+A single knowledge retriever is used by **several knowledge bases**, and the platform storage key `(instance, Workspace, owner type, plugin, key)` carries no knowledge-base dimension:
+
+- Any cache, index or intermediate result used for retrieval must be isolated by **knowledge-base ID**, with the ID in the key; never keep it on the instance.
+- Key retrieval locks and reconciliation state by `(installation, knowledge base)`; a retrieval failure in one knowledge base must not make retrieval unavailable for the others under the same installation.
+- `RetrievalContext` is valid only for a single retrieval; never store it or its results on instance fields for reuse across calls.
+- Knowledge-base data that must survive calls belongs in Host storage, with a key that includes both the installation identity and the knowledge-base ID.
+- If you cache connections, indexes or any other process-local state per installation, release them in `on_installation_revoked(binding)`.
+
+See [Certified plugins and shared runtime](/en/plugin/certified-plugins) for the full specification.
+
 ## Testing the Retriever
 
 After creation, execute the command `lbp run` in the plugin directory to start debugging. Then in LangBot:

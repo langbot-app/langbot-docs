@@ -20,7 +20,13 @@
     "metatags": {
       "og:site_name": "LangBot Docs",
       "twitter:card": "summary_large_image",
-      "og:image": "https://langbot.app/og-image.png"
+      "og:image": "https://langbot.app/docs/images/social/docs-v3.png",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:type": "image/png",
+      "og:image:alt": "LangBot Docs — Build. Connect. Extend.",
+      "twitter:image": "https://langbot.app/docs/images/social/docs-v3.png",
+      "twitter:image:alt": "LangBot Docs — Build. Connect. Extend."
     }
   },
   "navbar": {
@@ -677,6 +683,7 @@
                     "group": "Component Development",
                     "pages": [
                       "en/plugin/dev/components/add",
+                      "en/plugin/dev/components/runner",
                       "en/plugin/dev/components/event-listener",
                       "en/plugin/dev/components/command",
                       "en/plugin/dev/components/tool",
@@ -686,20 +693,23 @@
                     ]
                   },
                   "en/plugin/dev/style",
-                  "en/plugin/dev/migration",
+                  "en/plugin/certified-plugins",
                   {
                     "group": "Publish Plugin",
                     "pages": [
                       "en/plugin/dev/publish/market",
                       "en/plugin/dev/publish/github"
                     ]
-                  }
+                  },
+                  "en/plugin/dev/migration"
                 ]
               },
               {
                 "group": "Plugin SDK API",
                 "pages": [
+                  "en/plugin/dev/apis/agent-run",
                   "en/plugin/dev/apis/common",
+                  "en/plugin/dev/apis/platform",
                   "en/plugin/dev/apis/pipeline-events",
                   "en/plugin/dev/apis/messages",
                   "en/plugin/dev/apis/tech-details"
@@ -980,6 +990,7 @@
                     "group": "组件开发",
                     "pages": [
                       "zh/plugin/dev/components/add",
+                      "zh/plugin/dev/components/runner",
                       "zh/plugin/dev/components/event-listener",
                       "zh/plugin/dev/components/command",
                       "zh/plugin/dev/components/tool",
@@ -989,20 +1000,23 @@
                     ]
                   },
                   "zh/plugin/dev/style",
-                  "zh/plugin/dev/migration",
+                  "zh/plugin/certified-plugins",
                   {
                     "group": "发布插件",
                     "pages": [
                       "zh/plugin/dev/publish/market",
                       "zh/plugin/dev/publish/github"
                     ]
-                  }
+                  },
+                  "zh/plugin/dev/migration"
                 ]
               },
               {
                 "group": "插件 SDK API",
                 "pages": [
+                  "zh/plugin/dev/apis/agent-run",
                   "zh/plugin/dev/apis/common",
+                  "zh/plugin/dev/apis/platform",
                   "zh/plugin/dev/apis/pipeline-events",
                   "zh/plugin/dev/apis/messages",
                   "zh/plugin/dev/apis/tech-details"
@@ -1286,6 +1300,7 @@
                     "group": "コンポーネント開発",
                     "pages": [
                       "ja/plugin/dev/components/add",
+                      "ja/plugin/dev/components/runner",
                       "ja/plugin/dev/components/event-listener",
                       "ja/plugin/dev/components/command",
                       "ja/plugin/dev/components/tool",
@@ -1295,20 +1310,23 @@
                     ]
                   },
                   "ja/plugin/dev/style",
-                  "ja/plugin/dev/migration",
+                  "ja/plugin/certified-plugins",
                   {
                     "group": "プラグインを配布",
                     "pages": [
                       "ja/plugin/dev/publish/market",
                       "ja/plugin/dev/publish/github"
                     ]
-                  }
+                  },
+                  "ja/plugin/dev/migration"
                 ]
               },
               {
                 "group": "プラグイン SDK API",
                 "pages": [
+                  "ja/plugin/dev/apis/agent-run",
                   "ja/plugin/dev/apis/common",
+                  "ja/plugin/dev/apis/platform",
                   "ja/plugin/dev/apis/pipeline-events",
                   "ja/plugin/dev/apis/messages",
                   "ja/plugin/dev/apis/tech-details"

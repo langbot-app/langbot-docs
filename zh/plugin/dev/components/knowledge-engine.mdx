@@ -468,6 +468,18 @@ async def get_knowledge_file_stream(self, storage_path: str) -> bytes:
 file_bytes = await self.plugin.get_knowledge_file_stream(context.file_object.storage_path)
 ```
 
+## 一个安装，多份用法
+
+一个 RAG 引擎会被**多个知识库**同时选用，而平台的存储键 `(实例, 工作区, 组件类型, 插件名, key)` 不含知识库维度：
+
+- 持久化与缓存的键必须包含**知识库 ID**，否则不同知识库的向量、文档状态会互相覆盖。
+- 锁与「待对账」状态必须按 `(安装, 知识库)` 记；**一个知识库摄取失败不得阻断同一安装下其他知识库的摄取与检索**。
+- 只有「已经派发、结果未知」的变更才应进入需要人工对账的状态；确定性的校验错误与派发前的取消不应影响后续调用。
+- 遥测与诊断上报失败不得影响业务：日志/上报出错不要中断摄取或检索，也不要把租户数据写进进程级单例。
+- 如果按安装维护了进程内缓存或状态，请在 `on_installation_revoked(binding)` 中释放。
+
+以上约束的完整说明见[认证插件与共享运行](/zh/plugin/certified-plugins)。
+
 ## 测试 RAG 引擎
 
 创建完成后，在插件目录执行命令 `lbp run`，启动调试。然后在 LangBot 中：

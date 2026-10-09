@@ -484,3 +484,48 @@ At startup, LangBot applies these overrides and writes the resulting configurati
 <Note>
 In Docker deployments, set unified `BOX__*` variables on the `langbot` service. LangBot sends Box configuration to `langbot_box` through INIT RPC; variables set directly on `langbot_box` are not read.
 </Note>
+
+## Optional telemetry
+
+Telemetry is enabled by default and can be disabled.
+
+Set the following in the existing `space` section of `data/config.yaml`, preserve other settings, and restart LangBot:
+
+```yaml
+space:
+  disable_telemetry: true
+```
+
+This switch disables product telemetry (including heartbeats and execution records) and survey fetching. Use an unquoted YAML boolean. To restore the default, set it to `false` and restart. Cloud Plugin Runtime operational health reporting is controlled separately by `plugin.runtime_ops.enabled`.
+
+If `SPACE__DISABLE_TELEMETRY` is set in your deployment, it overrides the file at startup; update or remove it too. Recreate containers when changing their environment. In Cloud, the instance operator controls this setting for every Workspace in the instance. It does not disable the bot or change privacy settings of messaging platforms, model providers or plugins.
+
+### Per-event execution chains
+
+Current 4.11 execution telemetry defaults to full reporting of eligible executions, covering platform events, routing, Pipeline / Agent / plugin event processors, and the platform API and tool calls they cause. Each completed node generates a record, followed by a closure record when the execution ends; Space reconstructs the chain. These are the defaults in the same `space` section; restart after changing them:
+
+Platform events without a matching business route, or ignored by a `discard` rule with no matching plugin subscription, upload no execution records. Local logs and monitoring keep their existing behavior. Matching subscriptions, valid interaction resumptions and independent WebUI/API/Pipeline calls remain eligible, as do unavailable targets, execution failures or Pipeline filtering after a route matches. Eligibility is checked before sampling; neither Cloud's `all` nor failure fallback bypasses it. A Core upgrade is required.
+
+```yaml
+space:
+  execution_trace: all        # off | failures | sampled | all
+  execution_trace_sample: 20  # sampled: retain about 1/N successful executions by event hash
+  telemetry_flush_seconds: 180  # Execution record buffer flush interval, in seconds
+```
+
+The community edition supports these modes:
+
+| Mode | Reporting behavior |
+|---|---|
+| `all` | Default; records nodes and closure records for every eligible execution |
+| `sampled` | Makes one stable hash decision from the event identity for all records of that execution; excluded executions that fail still report a closure, without recovering skipped nodes |
+| `failures` | Omits nodes for ordinary executions; reports closures only for failure, cancellation, timeout or a recorded chain failure reason |
+| `off` | Reports neither nodes nor closures; no independent window counters continue, while heartbeats remain controlled by `disable_telemetry` |
+
+WebUI debug runs are retained with a debug flag in `all`, `sampled` and `failures`; `off` or `disable_telemetry: true` stops their upload. **Cloud always uses `all` while product telemetry is enabled and does not apply the sampling mode configured above**; the instance operator can still disable product telemetry with the main switch.
+
+`execution_trace_sample` accepts integers from 1 to 100000; `telemetry_flush_seconds` accepts integers from 1 to 86400. Invalid values fall back to 20 and 180 respectively, and an invalid mode falls back to `all`. Sampling does not select exactly every N-th execution in sequence.
+
+Each flush sends at most 128 records and the buffer holds at most 512. Failed sends remain buffered for retries; a full buffer drops the oldest records, so full reporting does not guarantee complete delivery. Active Workspaces first send a heartbeat about 30 seconds after startup, then daily in ordinary deployments or every 5 minutes in Cloud runtime. Raw execution records are cleaned up in batches using a 30-day window; backlogs can delay deletion.
+
+See [Data Collection Policy](../insight/data-collection-policy).
