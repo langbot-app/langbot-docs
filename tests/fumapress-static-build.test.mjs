@@ -204,6 +204,7 @@ test("canonical sitemap routes match the legacy Mintlify directory structure", a
   for (const locale of ["en", "zh", "ja"]) {
     legacy.add(`/${locale}/usage/platforms/mattermost`);
   }
+  for (const route of zhOnlyArticleRoutes) legacy.add(`/zh/${route}`);
   const sitemap = await readFile(path.join(publicRoot, "sitemap.xml"), "utf8");
   const actual = new Set([...sitemap.matchAll(/<loc>https:\/\/langbot\.app\/docs(\/[^<]+)<\/loc>/g)]
     .map((match) => decodeURIComponent(match[1]).replace(/\/$/, "")));
