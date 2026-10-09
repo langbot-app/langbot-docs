@@ -73,14 +73,62 @@ LangBot 是一个开源的 AI 机器人平台，可以将大模型、知识库�
 
 LangBot 社区持续产生新的插件、用法和解决方案。公众号会整理值得关注的项目进展、社区实践和优秀案例，帮助你更快发现可以直接使用的能力。
 
-## 适合哪些读者
+## 在 LangBot Cloud 部署微信公众号 AI 助手
 
-无论你是第一次接触 AI 机器人，还是正在为团队搭建知识库、客服或自动化工作流，都可以从公众号获得相关内容。
+LangBot Cloud 自带公网域名和 HTTPS，不需要购买服务器、安装 Docker 或配置反向代理。开始前只需准备一个可登录[微信公众平台](https://mp.weixin.qq.com/)的公众号。
 
-- 普通用户可以了解 LangBot 能做什么
-- 企业用户可以参考知识库和客服案例
-- 开发者可以关注插件、Agent 和平台适配能力
-- 团队负责人可以了解产品更新和部署选择
+### 1. 创建 LangBot Cloud 实例
+
+1. 打开 [LangBot Cloud](https://cloud.langbot.app)，登录 LangBot Account。
+2. 为机器人选择一个名称。这个名称也会成为实例的 `.langbot.cloud` 访问地址。
+3. 选择支持微信公众号的套餐，确认价格、资源和消息平台范围后继续。
+4. 确认配置并部署。实例通常会在 1 到 2 分钟内完成初始化。
+5. 状态变为**运行中**后，点击**打开机器人**进入 LangBot 控制台。
+
+### 2. 配置模型和流水线
+
+进入 LangBot 控制台的**模型**页面：
+
+1. Cloud 会提供可直接使用的 LangBot Models 及一定的模型积分；也可以添加自己的模型供应商、Base URL 和 API Key。
+2. 选择或添加一个对话模型。
+3. 进入**流水线**页面，打开默认流水线。
+4. 在 **AI 能力**中选择**内置 Agent**和刚添加的模型，然后保存。
+5. 使用**对话调试**发送一条消息，确认模型可以正常回复。
+
+只有调试对话成功后再继续接入公众号，这样出现问题时更容易区分是模型配置还是微信回调配置导致的。
+
+### 3. 获取公众号开发配置
+
+登录微信公众平台，进入**设置与开发 > 开发接口管理**：
+
+1. 记录公众号的 `AppID` 和 `AppSecret`。
+2. 按微信公众平台要求配置 IP 白名单。Cloud 实例需要填写的出口 IP 以实例或平台页面显示的信息为准。
+3. 打开服务器配置，准备一个自定义 `Token`，并生成 `EncodingAESKey`。
+4. 将消息加解密方式选择为**安全模式**。
+
+`AppSecret`、`Token` 和 `EncodingAESKey` 都属于敏感信息，不要放进截图、公开仓库或聊天记录。
+
+### 4. 在 LangBot 创建公众号机器人
+
+进入 LangBot 控制台的**机器人**页面，创建一个**微信公众号**机器人，然后：
+
+1. 填入 `AppID`、`AppSecret`、`Token` 和 `EncodingAESKey`。
+2. `Mode` 选择 `drop` 时，公众号直接返回模型回答，但必须在微信规定的 15 秒内完成。
+3. 模型响应可能超过 15 秒时，建议选择 `passive`；用户会先收到等待提示，再发送任意文字获取结果。
+4. 绑定前面配置好的流水线，将 `enable` 设为 `true`，保存并启用机器人。
+5. 从机器人配置页面复制 Webhook 回调地址。
+
+### 5. 完成微信回调验证
+
+回到微信公众平台的服务器配置，粘贴 LangBot 生成的完整 Webhook 地址。Cloud 地址已经配置好公网 HTTPS，形式类似：
+
+```text
+https://你的实例名.langbot.cloud/bots/xxxxx
+```
+
+确认微信公众平台和 LangBot 两边填写的 `Token`、`EncodingAESKey` 及加密模式完全一致，然后保存并启用服务器配置。微信提示保存成功，说明回调验证已经通过。
+
+最后关注公众号并发送一条测试消息。如果回调验证失败，请优先检查 IP 白名单、Webhook 地址以及两端的 `Token`、`EncodingAESKey` 和加密模式是否一致。更多截图和字段说明见[微信公众号接入文档](/zh/usage/platforms/wxoa)。如有私有部署要求，再参考 [Docker 部署文档](/zh/deploy/langbot/docker)。
 
 ## 关注并开始问答
 
@@ -94,4 +142,4 @@ LangBot 社区持续产生新的插件、用法和解决方案。公众号会整
 
 - [LangBot GitHub](https://github.com/langbot-app/LangBot)
 - [LangBot 官方文档](https://langbot.app/docs)
-- [LangBot Cloud](https://space.langbot.app/cloud)
+- [LangBot Cloud](https://cloud.langbot.app)

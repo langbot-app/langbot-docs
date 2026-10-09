@@ -83,6 +83,54 @@ Agent 会在工作区中完成操作，并告诉你处理结果。
 
 请不要在对话中发送密码、API Key、身份证件或其他敏感信息。对于删除文件、批量修改和长时间运行等操作，建议先明确范围，并在执行前确认。
 
+## 在 LangBot Cloud 部署 Telegram 沙箱 Agent
+
+LangBot Cloud 已经准备好托管环境、公网访问地址和沙箱，不需要购买服务器、安装 Docker 或配置运行时。开始前只需准备一个 Telegram 账号。
+
+### 1. 创建 LangBot Cloud 实例
+
+1. 打开 [LangBot Cloud](https://cloud.langbot.app)，登录 LangBot Account。
+2. 为机器人选择一个名称。这个名称也会成为实例的 `.langbot.cloud` 访问地址。
+3. 选择当前可用的体验版、免费版或订阅套餐。不同套餐的可用平台、资源和自动休眠规则以页面显示为准。
+4. 确认配置并部署。实例通常会在 1 到 2 分钟内完成初始化。
+5. 状态变为**运行中**后，点击**打开机器人**进入 LangBot 控制台。
+
+Cloud 会为实例提供可直接使用的 LangBot Models 及一定的模型积分。你也可以在**模型**页面接入自己的模型 API Key。
+
+### 2. 配置沙箱 Agent 流水线
+
+进入**流水线**页面，打开默认流水线或创建一条新流水线，然后在 **AI 能力**中：
+
+1. 将运行器选择为**内置 Agent**。
+2. 选择一个支持工具调用的模型。接入自有模型时，需要同时启用模型的**工具使用能力**。
+3. 确认沙箱已启用。Cloud 已经配置好沙箱后端，无需额外安装。
+4. 选择沙箱作用域。个人私聊建议使用**每个会话**；多人群聊且需要隔离文件时，建议使用**每个用户**。
+5. 保存流水线，并在**对话调试**中让 Agent 执行一个简单任务，例如“用 Python 计算 1 到 100 的和”。
+
+如果 Agent 只返回代码但没有执行，请检查模型是否支持工具调用、是否启用了工具使用能力，以及流水线运行器是否为内置 Agent。
+
+### 3. 在 Telegram 创建机器人
+
+1. 打开 [BotFather](https://t.me/botfather)，发送 `/newbot`。
+2. 按提示设置机器人名称和以 `bot` 结尾的用户名。
+3. 保存 BotFather 返回的 API Token，不要将它发送给其他人。
+4. 如果机器人需要读取群聊中的普通消息，在 BotFather 中执行 `/setprivacy`，选择该机器人并关闭 Privacy Mode；只用于私聊时可以保持默认设置。
+
+### 4. 将 Telegram 接入 LangBot
+
+回到 LangBot 控制台，进入**机器人**页面并创建机器人：
+
+1. 平台选择 **Telegram**。
+2. 填入 BotFather 提供的 API Token。
+3. 绑定前面配置好的内置 Agent 流水线。
+4. 保存并启用机器人。
+
+打开 Telegram，进入刚创建的机器人会话并点击 **Start**，发送：
+
+> 请用 Python 生成一份包含 20 条示例数据的 CSV 文件，并统计其中数值列的平均值。
+
+Agent 能执行命令、创建文件并返回统计结果，就说明模型、沙箱、流水线和 Telegram 接入均已配置成功。完整配置项可继续参考 [Telegram 接入文档](/zh/usage/platforms/telegram)和[沙箱文档](/zh/usage/sandbox/readme)。如有私有部署要求，再参考 [Docker 部署文档](/zh/deploy/langbot/docker)。
+
 ## 扫码开始体验
 
 使用 Telegram 扫描下方二维码，打开 LangBot 沙箱 Agent 后直接发送任务。
