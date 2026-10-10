@@ -132,3 +132,16 @@ LangBot 支持一键创建钉钉应用并自动填写凭证，无需手动复制
 点击机器人即可和机器人聊天。
 
 如果想要添加到群里，那么点击钉钉群的`群管理`，`机器人`，`添加机器人`，然后搜索机器人名称就可以在群中使用。
+
+## 事件订阅
+
+在钉钉应用后台的「事件订阅」选择 Stream 模式，并勾选需要的事件。机器人收消息与事件订阅是两个入口，只开启机器人 Stream 收消息不会收到群变动事件。
+
+- `chat_add_member` → `group.member_joined`，多人变更逐人触发。
+- `chat_remove_member` / `chat_quit` → `group.member_left`，区分移除与主动退出。
+- `chat_update_title` / `chat_update_owner` → `group.info_updated`。
+- 普通卡片点击或提交 → `dingtalk.card_action`；可识别的点赞反馈仍使用 `feedback.received`，LangBot 管理的人工输入表单继续交给原交互流程，避免重复触发。
+- 群解散及其他已订阅事件使用 `platform.specific`，`action` 保留钉钉事件名，`data` 保留原始头部与事件数据。
+
+群事件受钉钉的应用权限和群类型范围限制，并非所有机器人所在群都支持。仅有 unionId、缺少可用用户 ID 的成员通知保留为平台专属事件，不把 unionId 当作可发送消息的用户 ID。消息编辑、撤回、表情反应、好友申请及机器人禁言等尚未确认有对应通用推送，不声明为支持。
+

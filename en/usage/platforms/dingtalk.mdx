@@ -132,3 +132,16 @@ This article uses DingTalk Windows desktop version as an example, click `Search`
 Click on the bot to chat with it.
 
 If you want to add it to a group, click `Group Management`, `Robots`, `Add Robot` in the DingTalk group, then search for the bot name to use it in the group.
+
+## Event subscriptions
+
+Select Stream mode under Event Subscriptions in the DingTalk app console and enable the required events. This is separate from the robot message callback setting.
+
+- `chat_add_member` maps to `group.member_joined`, once per affected member.
+- `chat_remove_member` / `chat_quit` map to `group.member_left`, distinguishing removal from voluntary departure.
+- `chat_update_title` / `chat_update_owner` map to `group.info_updated`.
+- Ordinary card interactions emit `dingtalk.card_action`. Recognized feedback uses `feedback.received`; managed input forms retain their existing interaction flow without duplicate triggers.
+- Group disbanding and other subscribed events use `platform.specific`, preserving the native event name in `action` and the original headers and payload in `data`.
+
+Group events depend on application permissions and supported group types. Member notifications containing only unionId remain platform-specific; unionId is not treated as a messaging user ID. Message editing, recall, reactions, friend requests and bot mute events are not advertised without a confirmed corresponding push capability.
+
