@@ -77,7 +77,37 @@ Configuration tokens are used only during the temporary setup session, not saved
 
 If no reply arrives, check that both the bot and message route are enabled, the handler works, and the bot logs show no errors. For Socket Mode, verify that the App-Level Token belongs to the same app and includes `connections:write`. For Webhook, check the public endpoint and Slack's **Verified** status.
 
+## Events, interactions and upgrading existing apps
+
+Quick setup configures the subscriptions and interaction endpoint below. Installation requests message, channel, user, file and reaction permissions; `reactions:read` enables reaction events. Normal channel replies still require an @mention. Subscribing to channel messages for edits, deletions and channel changes does not trigger replies to all channel traffic.
+
+| Slack event | LangBot event |
+| --- | --- |
+| Direct messages, `app_mention` | `message.received` |
+| `message_changed` / `message_deleted` message subtypes | `message.edited` / `message.deleted` |
+| `reaction_added` / `reaction_removed` | `message.reaction`, distinguished by `is_add` |
+| `member_joined_channel` / `member_left_channel` | `group.member_joined` / `group.member_left` |
+| Membership events for the bot itself | `bot.invited_to_group` when an inviter is present; `bot.removed_from_group` on departure |
+| Channel rename, archive/unarchive, topic/purpose changes | `group.info_updated` |
+| `block_actions`, `view_submission`, `view_closed`, `shortcut`, `message_action` | `platform.specific`, with `action` set to `slack.` plus the callback type |
+| `app_home_opened`, `app_uninstalled`, `tokens_revoked` | `platform.specific`, with `action` set to `slack.` plus the event type |
+
+Configure handlers in the bot's event routing; distinguish platform callbacks by `action`. Uninstallation and token revocation also produce bot warning logs and do not automatically send chat replies. Emoji reactions are not automatically treated as model feedback. Message IDs use Slack message timestamps (`ts`) together with the channel; replies preserve `thread_ts`.
+
+Interactions are acknowledged first and processed asynchronously. Synchronous field validation errors in modal submission acknowledgements and external select-option loading are not supported. Set `notify_on_close: true` when opening a modal to receive `view_closed`. Receiving callbacks does not create buttons, shortcuts or modals. Both Socket Mode and Webhook support these handlers; actual delivery depends on Slack permissions, channel membership and connection availability.
+
+**Upgrading LangBot does not automatically update an existing Slack app's permissions.** Keep the existing app and:
+
+1. In **OAuth & Permissions → Bot Token Scopes**, retain existing scopes and add `reactions:read`. Verify `app_mentions:read`, `chat:write`, `channels:history`, `channels:read`, `groups:history`, `groups:read`, `im:history`, `im:read`, `im:write`, `mpim:history`, `mpim:read`, `users:read`, `files:read`, `files:write`, then **Reinstall to Workspace** to authorize the permissions.
+2. In **Event Subscriptions → Subscribe to bot events**, configure: `app_mention`, `message.im`, `message.channels`, `message.groups`, `message.mpim`, `reaction_added`, `reaction_removed`, `member_joined_channel`, `member_left_channel`, `channel_rename`, `group_rename`, `channel_archive`, `channel_unarchive`, `group_archive`, `group_unarchive`, `app_home_opened`, `app_uninstalled`, `tokens_revoked`. Edits/deletions and topic/purpose changes are message subtypes, not separate subscriptions.
+3. Enable **Interactivity & Shortcuts**. For Webhook, use the same LangBot `/bots/<bot UUID>` **Request URL** as event subscriptions. Socket Mode needs no public interaction URL.
+4. Save Slack settings and configure the corresponding LangBot routes. If reinstallation changes the Bot Token, update it and save the bot.
+
+See the [Slack App Manifest reference](https://docs.slack.dev/reference/app-manifest/) for field definitions.
+
 ## Manual setup (Webhook)
+
+The screenshots below show basic messaging setup. Use the current lists in “Events, interactions and upgrading existing apps” above for complete permissions, subscriptions and interactivity settings.
 
 The manual Webhook instructions follow. For manual Socket Mode setup, enable Socket Mode in Slack, supply Bot Token and App-Level Token, and subscribe to `app_mention` and `message.im`. No event Request URL is needed.
 

@@ -77,7 +77,37 @@ Webhook 模式可跳过本步。长连接模式中，点击助手的 **打开应
 
 如果没有回复，先确认机器人及消息路由已启用、处理器本身能够正常运行，并查看机器人日志。长连接模式检查 App-Level Token 是否属于同一应用且包含 `connections:write`；Webhook 模式检查公网地址和 Slack 的 **Verified** 状态。
 
+## 事件、交互与已有应用升级
+
+新版快速配置向导会自动配置下列事件订阅和交互入口。安装授权页会申请消息、频道、用户、文件和表情反应权限，其中 `reactions:read` 用于表情反应事件。频道中的普通回复仍只由 @ 机器人触发；为获取编辑、删除和频道信息变化而订阅的频道消息不会全部触发回复。
+
+| Slack 事件 | LangBot 事件 |
+| --- | --- |
+| 私聊消息、`app_mention` | `message.received` |
+| `message_changed` / `message_deleted` 消息子类型 | `message.edited` / `message.deleted` |
+| `reaction_added` / `reaction_removed` | `message.reaction`，通过 `is_add` 区分 |
+| `member_joined_channel` / `member_left_channel` | `group.member_joined` / `group.member_left` |
+| 上述成员事件中的机器人自身 | 有邀请者时为 `bot.invited_to_group`；离开时为 `bot.removed_from_group` |
+| 频道重命名、归档/取消归档、主题/用途变化 | `group.info_updated` |
+| `block_actions`、`view_submission`、`view_closed`、`shortcut`、`message_action` | `platform.specific`，`action` 为 `slack.` 加回调类型 |
+| `app_home_opened`、`app_uninstalled`、`tokens_revoked` | `platform.specific`，`action` 为 `slack.` 加事件类型 |
+
+在机器人的事件路由中为所需事件配置处理器；平台事件可按 `action` 区分。卸载和令牌撤销同时写入机器人警告日志，不自动发送聊天回复。表情反应是普通反应事件，不自动视为对模型的反馈。消息 ID 使用 Slack 消息时间戳 `ts`，需结合频道识别；线程回复保留 `thread_ts`。
+
+交互回调先确认接收，再异步交给处理器；目前不支持在表单提交确认中同步返回字段校验错误，也不提供外部下拉选项加载。接收 `view_closed` 需要创建弹窗时设置 `notify_on_close: true`。回调不会自动创建按钮、快捷方式或弹窗。Socket Mode 和 Webhook 均支持上述接收逻辑，但实际投递受 Slack 授权、频道成员关系及连接状态限制。
+
+**已有应用不会因升级 LangBot 自动获得新权限。** 无需重新创建应用，按以下步骤补齐：
+
+1. 在 **OAuth & Permissions → Bot Token Scopes** 保留原权限，增加 `reactions:read`；确认包含 `app_mentions:read`、`chat:write`、`channels:history`、`channels:read`、`groups:history`、`groups:read`、`im:history`、`im:read`、`im:write`、`mpim:history`、`mpim:read`、`users:read`、`files:read`、`files:write`，然后 **Reinstall to Workspace** 重新授权。
+2. 在 **Event Subscriptions → Subscribe to bot events** 配置：`app_mention`、`message.im`、`message.channels`、`message.groups`、`message.mpim`、`reaction_added`、`reaction_removed`、`member_joined_channel`、`member_left_channel`、`channel_rename`、`group_rename`、`channel_archive`、`channel_unarchive`、`group_archive`、`group_unarchive`、`app_home_opened`、`app_uninstalled`、`tokens_revoked`。编辑/删除、主题/用途变化属于消息子类型，无需单独订阅。
+3. 在 **Interactivity & Shortcuts** 启用交互。Webhook 模式的 **Request URL** 与事件订阅使用同一个 LangBot `/bots/<机器人 UUID>` 地址；Socket Mode 不需要公网交互地址。
+4. 保存 Slack 设置，在 LangBot 配置相应事件路由。若重新安装后 Bot Token 改变，回填新值并保存机器人。
+
+字段定义参考 [Slack App Manifest](https://docs.slack.dev/reference/app-manifest/)。
+
 ## 手动配置（Webhook）
+
+下方截图展示基础对话配置；完整权限、事件订阅和交互配置请使用上方“事件、交互与已有应用升级”中的最新清单。
 
 下面保留手动 Webhook 配置步骤。若手动使用长连接，请在 Slack 开启 Socket Mode，填写 Bot Token 和 App-Level Token，并订阅 `app_mention` 和 `message.im`；无需配置事件 Request URL。
 
