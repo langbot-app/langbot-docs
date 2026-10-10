@@ -4,7 +4,84 @@ description: "Build a Slack AI bot with LangBot. Connect GPT, Claude, Dify and m
 icon: "/images/platforms/slack.svg"
 ---
 
-## Create Bot
+## Quick setup (recommended)
+
+Use **Quick Slack setup** to create your app. LangBot configures bot scopes, message events, the messages tab and the OAuth return URL. You provide configuration tokens, approve installation in Slack, and add an App-Level Token when using Socket Mode.
+
+### 1. Create a bot and choose a connection mode
+
+In LangBot, open **Bots → Create bot**, enter a name, select **Slack**, and submit. On the configuration page, choose a connection mode and select **Quick Slack setup → Start**:
+
+![Create a bot and select the Slack adapter](/images/zh/deploy/bots/slack/setup-create-bot.jpg)
+
+- **Socket Mode (recommended)**: LangBot connects to Slack. No public event webhook is required, making this suitable for local or private-network deployments.
+- **Webhook**: Slack sends events to LangBot through a publicly reachable HTTPS endpoint.
+
+![Select Socket Mode and open Quick Slack setup](/images/zh/deploy/bots/slack/setup-connection-mode.jpg)
+
+### 2. Get App Configuration Tokens
+
+Open the [Slack apps page](https://api.slack.com/apps). Under **Your App Configuration Tokens**, select **Generate Token** and choose the target workspace. Copy both the **Access Token** and **Refresh Token**. If tokens already exist, use their copy buttons.
+
+![Slack configuration token section and copy buttons](/images/zh/deploy/bots/slack/setup-configuration-tokens.jpg)
+
+These tokens create and configure apps. **They are not the runtime Bot Token or App-Level Token.** Paste each into its matching field in the assistant and confirm the app name.
+
+### 3. Confirm the URL and create the app
+
+For Socket Mode, check the **OAuth return URL**. It returns your browser to LangBot after authorization, accepts HTTPS or `http://localhost`, and ends in `/api/v1/platform/adapters/slack/setup/callback`. Only your browser needs to reach it; this is not an event webhook. For remote deployments, do not use a server-internal address that your browser cannot reach.
+
+![Socket Mode quick setup form](/images/zh/deploy/bots/slack/setup-socket-mode.jpg)
+
+For Webhook, the assistant shows a **Webhook URL** instead. Verify the public domain, HTTPS and reverse proxy, and preserve the `/bots/<bot UUID>` suffix. LangBot derives the OAuth return URL from it and completes Slack's event URL verification automatically.
+
+Select **Create and configure**, then wait for **Authorize in Slack**.
+
+### 4. Authorize installation in Slack
+
+Select **Authorize in Slack**, review the app name, workspace and permissions, and select **Allow**. Workspace policy may require administrator approval. Return to the original LangBot assistant afterward.
+
+![Slack installation authorization page](/images/zh/deploy/bots/slack/setup-slack-permissions.jpg)
+
+### 5. Socket Mode: add an App-Level Token
+
+Skip this step for Webhook. For Socket Mode, use **Open app settings** in the assistant and navigate to **Basic Information → App-Level Tokens → Generate Token and Scopes**:
+
+1. Enter a Token Name, such as `langbot-socket`.
+2. Select **Add Scope**, then **connections:write**.
+3. Select **Generate**, copy the resulting `xapp-` token, and paste it into **App-Level Token** in the assistant.
+
+![Add connections:write to the App-Level Token](/images/zh/deploy/bots/slack/setup-app-token-scope.jpg)
+
+Leave **Token rotation** disabled. The token must belong to the same Slack app you just created. Do not use the Access Token or Refresh Token from step 2 here.
+
+### 6. Fill configuration, set routing and enable the bot
+
+When the assistant reports successful authorization, select **Fill adapter configuration**. In Socket Mode, this button becomes available after you enter the App-Level Token. The assistant fills the Bot Token and other adapter credentials automatically.
+
+![Authorization completed and adapter configuration ready to fill](/images/zh/deploy/bots/slack/setup-authorized.jpg)
+
+Under **Event routing → Add action → Reply to received messages**, select a configured pipeline or Agent for `message.received` and keep the route enabled. Finally, select **Save and enable** at the top right.
+
+![Configure the message route and save the bot](/images/zh/deploy/bots/slack/setup-routing.jpg)
+
+### 7. Test a conversation
+
+Open the app's **Messages** tab in Slack and send a direct message. You can also invite the bot to a channel and mention it. A reply confirms the integration works.
+
+![A successful Slack bot conversation](/images/zh/deploy/bots/slack/setup-conversation.png)
+
+<Info>
+Configuration tokens are used only during the temporary setup session, not saved as runtime credentials. Sessions last 15 minutes. Cancelling does not delete an app already created in Slack, and starting again may create another app. If the return page shows an error, check whether the original assistant already reports successful authorization before restarting.
+</Info>
+
+If no reply arrives, check that both the bot and message route are enabled, the handler works, and the bot logs show no errors. For Socket Mode, verify that the App-Level Token belongs to the same app and includes `connections:write`. For Webhook, check the public endpoint and Slack's **Verified** status.
+
+## Manual setup (Webhook)
+
+The manual Webhook instructions follow. For manual Socket Mode setup, enable Socket Mode in Slack, supply Bot Token and App-Level Token, and subscribe to `app_mention` and `message.im`. No event Request URL is needed.
+
+### Create Bot
 
 Go to the [Slack App Platform](https://api.slack.com/apps).
 
@@ -29,7 +106,7 @@ After adding the above permissions, click `Install to your workspace`, record th
 Enter the `App Home` tab on the left, scroll to the bottom where you'll find `Message Tab`, turn it on and check
 `Allow users to send Slash commands and messages from the messages tab`.
 
-## Connect to LangBot
+### Connect to LangBot
 
 Enter `Event Subscriptions` on the left, turn on the switch, click `Subscribe to bot events`,
 add the following permissions:
@@ -39,10 +116,10 @@ After completing all the above operations, open the LangBot Webui configuration 
 
 ![Event Permissions](/images/zh/deploy/bots/slack/connect_to_langbot.png)
 
-## Start Bot
+### Start Bot
 
 <Info>
-Since Slack officially requires https, please configure reverse proxy first according to the documentation [Configure HTTP Reverse Proxy and SSL](/en/workshop/production/proxy-and-ssl).
+Webhook mode requires public HTTPS; please configure reverse proxy first according to the documentation [Configure HTTP Reverse Proxy and SSL](/en/workshop/production/proxy-and-ssl).
 </Info>
 
 After filling in the Slack configuration items, **start LangBot**.
@@ -52,6 +129,6 @@ Enable and open the Slack bot configuration page on the LangBot homepage, copy t
 After filling in all the above configuration items, click save link. If it shows a green **Verified**, it means the deployment is successful.
 Otherwise, check if the above configuration items are filled in correctly.
 
-## Effect Demonstration
+### Effect Demonstration
 
 ![Effect Demonstration](/images/zh/deploy/bots/slack/slack_05.jpg)
