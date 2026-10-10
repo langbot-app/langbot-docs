@@ -31,7 +31,7 @@ LangBot supports one-click DingTalk app creation with automatic credential filli
 7. Click **Submit** to complete. LangBot automatically identifies the bot.
 
 <Warning>
-One-click setup fills in app credentials but does not create card templates. For streaming replies, import the LangBot streaming reply template, set Card Template ID to automatically enable streaming replies; leave it empty for ordinary replies. For human input interactions, import the separate human input template and set Human Input Card Template ID. Enable the required card permissions in your DingTalk app.
+One-click setup fills in app credentials but does not create card templates. For streaming replies, import the LangBot streaming reply template, enable Use Card Replies and set Card Template ID to automatically enable streaming replies. Turn off the switch for plain text without deleting the template ID. For human input interactions, import the separate human input template and set Human Input Card Template ID. Enable the required card permissions in your DingTalk app.
 </Warning>
 
 ## Configure card templates (use the LangBot templates)
@@ -60,7 +60,7 @@ The import option is inside the editor, not on the template list page. Importing
 </Note>
 
 5. Review the preview, **save and publish** the template, and copy its ID. Saving a draft is insufficient: `param.templateUnpublished` means the template has not been published.
-6. Paste the ID into **Card Template ID** in LangBot and save to automatically enable streaming replies. Clear this field and save to return to ordinary replies.
+6. Enable **Use Card Replies**, paste the ID into **Card Template ID** in LangBot, and save to enable streaming replies. Turning off the switch uses plain text and hides but preserves the template settings for later use.
 
 The template includes LangBot branding and separate reasoning and answer regions. Reasoning is expanded during generation and collapsed by default when finished; users can expand it again. The footer offers answer copying, thumbs-up/down controls, and an AI-generated content label. The pipeline still controls whether reasoning is removed. If removed, the reasoning region is hidden. Ordinary messages with reasoning retained show literal `<think>` and `</think>` markers separated from the answer by blank lines.
 
@@ -116,7 +116,7 @@ For card templates, follow the steps above to import and publish the templates s
 ### Fill in Configuration Information
 
 Click `Credentials and Basic Information`, record `Client ID` and `Client Secret`, and enter these credentials in the LangBot adapter configuration.
-`markdown_card` is whether to enable Markdown form replies. When this configuration item is disabled, the `@Sender` configuration switch will not take effect.
+`markdown_card` (Use Card Replies) controls both Markdown and streaming card replies. When enabled, a configured template enables streaming; otherwise ordinary Markdown is used. Disable it for plain text without clearing template settings. Human input cards are configured separately for workflow interactions.
 Record the above configuration items and fill them in the LangBot bot configuration form
 
 Click [Card Platform](https://open-dev.dingtalk.com/fe/card?spm=ding_open_doc.document.0.0.33cf2281L0fXsV), copy the corresponding bound template ID from the template list, and fill it into the card template ID field.
