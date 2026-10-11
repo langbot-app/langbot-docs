@@ -239,7 +239,7 @@ test("prebuild is deterministic and preserves local assets and SEO files", async
     assert.match(troubleshooting, /```dotenv\nLANGBOT_BOX_ROOT=/);
     assert.doesNotMatch(troubleshooting, /```env(?:\s|$)/m);
     const dingtalk = await readFile(path.join(temp, "content/docs/usage/platforms/dingtalk.mdx"), "utf8");
-    assert.match(dingtalk, /!\[Don.t modify\]\(\/images\/zh\/deploy\/bots\/dingtalk\/dingtalk13\.png\)/);
+    assert.match(dingtalk, /!\[DingTalk Open Platform\]\(\/images\/zh\/deploy\/bots\/dingtalk\/dingtalk1\.png\)/);
     assert.doesNotMatch(dingtalk, /\]\(\.\.\/\.\.\/\.\.\/images\//);
     await readFile(path.join(temp, "public/images/platforms/qq.svg"));
     await readFile(path.join(temp, "public/images/zh/plugin/dev/dist/github_release.png"));
