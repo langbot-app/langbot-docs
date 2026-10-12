@@ -3,6 +3,26 @@ title: "NapCat"
 description: "Connect QQ to LangBot via NapCat (aiocqhttp). Run an AI chatbot in QQ groups and private messages."
 ---
 
+## OneBot 4.11 new adapter settings (onebot-v11)
+
+The new ID is `onebot-v11`. Saved `aiocqhttp-omni` and `aiocqhttp-eba` IDs remain supported aliases; legacy `aiocqhttp` is unchanged.
+
+This section applies to the new 4.11 adapter with expanded events and APIs. The legacy `aiocqhttp` adapter retains its implementation, dedicated port and existing configuration; no migration is required.
+
+The default is **Reverse WS — protocol endpoint connects to LangBot**. Create and save a bot with a non-empty access token. Copy the protocol endpoint connection URL into the endpoint's WebSocket client, select **Universal**, and configure the same token.
+
+Use `wss://your-domain/bots/<bot_uuid>/onebot/v11/ws`, sharing the main service port, or locally `ws://host:5300/bots/<bot_uuid>/onebot/v11/ws`. Inside containers, localhost refers only to that container; use a reachable service name or domain.
+
+Alternatively select **Forward WS — LangBot connects to protocol endpoint**. Enable the endpoint's Universal WebSocket server and enter its reachable `ws://` or `wss://` URL and matching token in LangBot. LangBot reconnects after disconnection.
+
+Both modes use `Authorization: Bearer <token>`. Optionally pin the expected bot account. Reverse connections require `X-Self-ID` and `X-Client-Role: Universal`. Separate API/Event sockets and HTTP mode are not supported.
+
+### Migrating new-adapter configuration
+
+Only the new adapter stops using host/port. Bots already using the new adapter must update the endpoint URL and set a token. Legacy bots keep host/port, optional tokens and `:2280/ws`; they are not automatically switched to the new adapter. Old screenshots are installation references; use these instructions and the current UI for connection settings.
+
+Your reverse proxy must support WebSocket Upgrade. Use wss with public HTTPS and configure the public Webhook prefix correctly. Cloud ingress must route each bot to its Workspace's current placement instance; random load balancing is insufficient. Disabling, deleting or relocating a bot invalidates its connection. The endpoint should reconnect. Pending sends are not replayed after disconnection to avoid duplicate messages.
+
 Connect through the OneBot 11 protocol, you need to select ``OneBot v11`` as the adapter.
 
 ## NapCat Installation Tutorial

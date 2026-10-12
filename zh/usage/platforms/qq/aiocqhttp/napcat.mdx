@@ -3,6 +3,26 @@ title: "NapCat"
 description: "通过 NapCat（aiocqhttp）将 QQ 接入 LangBot，在 QQ 群聊与私信中运行 AI 聊天机器人。"
 ---
 
+## 4.11 新版 OneBot 连接配置（onebot-v11）
+
+新版标识为 `onebot-v11`；已保存的 `aiocqhttp-omni` 和 `aiocqhttp-eba` 作为兼容别名继续可用，旧版 `aiocqhttp` 不变。
+
+本节适用于支持更多事件和 API 的 4.11 新版适配器。旧版 `aiocqhttp` 保留原实现、独立监听端口和原有配置，无需迁移。
+
+默认选择 **反向 WS — 协议端连接 LangBot**。创建机器人，填写非空访问令牌并保存，然后复制“协议端连接地址”，填入协议端的 WebSocket 客户端配置，选择 **Universal**，并设置相同令牌。
+
+地址形如 `wss://你的域名/bots/<bot_uuid>/onebot/v11/ws`，与管理界面共用主服务端口；本地可用 `ws://主机:5300/bots/<bot_uuid>/onebot/v11/ws`。容器内的 `127.0.0.1` 只指向当前容器；跨容器请使用服务名或可访问的域名。
+
+也可选择 **正向 WS — LangBot 连接协议端**，在协议端启用同时提供事件与 API 的 WebSocket 服务端，在 LangBot 填写其 `ws://` 或 `wss://` 地址及相同令牌。该地址必须能从 LangBot 访问。连接中断后 LangBot 会自动重连。
+
+两种模式均使用 `Authorization: Bearer <token>`。可填写预期机器人账号以拒绝其他账号。反向连接需要 `X-Self-ID` 和 `X-Client-Role: Universal`。暂不支持分离的 API/Event 连接或 HTTP 模式。
+
+### 新版配置迁移
+
+仅新版适配器不再使用 `host`、`port`：已使用新版的机器人需在协议端改填配置页的新地址，并补齐访问令牌。旧版机器人的 `host`、`port`、可选令牌和 `:2280/ws` 连接方式保持不变，不会自动切换到新版。旧截图只供安装参考，连接地址和字段以本节及当前界面为准。
+
+反向代理需要支持 WebSocket Upgrade，使用公网 HTTPS 时连接地址应为 `wss://`。设置正确的公开 Webhook 前缀以生成外部可访问地址。云端入口必须按机器人所属 Workspace 路由到当前 placement 实例；普通随机负载均衡不能保证找到连接所有者。停用、删除或迁移机器人后旧连接会失效；协议端应自动重连。连接中断时不自动重放发送请求，以免重复发消息。
+
 通过 OneBot 11 协议接入，需选择使用``OneBot v11``作为适配器。
 
 ## NapCat安装教程

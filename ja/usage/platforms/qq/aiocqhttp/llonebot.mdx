@@ -3,6 +3,26 @@ title: "LiteLoaderQQNT"
 description: "LiteLoaderQQNT（LLOneBot）経由で QQ を LangBot に接続。QQ のグループやチャット向け AI ボットを構築。"
 ---
 
+## OneBot 4.11 新版アダプターの接続設定（onebot-v11）
+
+新版 ID は `onebot-v11` です。保存済みの `aiocqhttp-omni` と `aiocqhttp-eba` は互換エイリアスとして利用でき、旧版 `aiocqhttp` は変更されません。
+
+本節はイベントと API を拡張した 4.11 新版向けです。旧版 `aiocqhttp` は従来の実装・専用ポート・設定を維持し、移行は不要です。
+
+既定は **逆方向 WS — プロトコル側から LangBot に接続** です。空でないアクセストークンを設定してボットを保存し、表示された接続先 URL をプロトコル側の WebSocket クライアントに設定します。**Universal** を選び、同じトークンを設定してください。
+
+URL は `wss://your-domain/bots/<bot_uuid>/onebot/v11/ws` です。管理画面とメインポートを共有します。ローカルでは `ws://host:5300/bots/<bot_uuid>/onebot/v11/ws` を使用できます。コンテナ間では localhost ではなく、到達可能なサービス名を使用してください。
+
+**順方向 WS — LangBot からプロトコル側に接続** も選択できます。プロトコル側の Universal WebSocket サーバーを有効にし、LangBot から到達可能な ws/wss URL と同じトークンを入力してください。切断時は自動再接続します。
+
+両方式で `Authorization: Bearer <token>` を使用します。ボットアカウントの固定は任意です。逆方向は `X-Self-ID` と `X-Client-Role: Universal` が必要です。API/Event 分離接続と HTTP は非対応です。
+
+### 新版設定の移行
+
+新版のみ host/port を使用しなくなります。既に新版を使っている場合は接続先 URL とトークンを更新してください。旧版は host/port、任意のトークン、`:2280/ws` を維持し、新版に自動変更されません。旧画像ではなく、現在の画面と本節の接続設定に従ってください。
+
+リバースプロキシは WebSocket Upgrade をサポートする必要があります。HTTPS 公開時は wss を使い、公開 Webhook プレフィックスを設定してください。クラウド入口は Workspace の現在の placement インスタンスにルーティングする必要があります。ボットの無効化・削除・移動で旧接続は無効になります。プロトコル側は再接続してください。重複送信を防ぐため、切断した送信要求は自動再送しません。
+
 OneBot 11 プロトコルを通じて接続します。アダプターとして ``OneBot v11`` を選択する必要があります。
 
 # LiteLoaderQQNT
