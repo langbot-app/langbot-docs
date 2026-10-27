@@ -1,3 +1,8 @@
+> [!WARNING]
+>
+> Migrated to https://github.com/langbot-app/LangBot/tree/master/docs  
+> 已迁移至 https://github.com/langbot-app/LangBot/tree/master/docs
+
 # [LangBot](https://github.com/langbot-app/LangBot) 官方文档
 
 > 此仓库是 LangBot 的文档仓库，代码仓库：  
